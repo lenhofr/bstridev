@@ -10,12 +10,18 @@ const links = [
 ];
 
 function closeDropdown(target: EventTarget | null) {
-  (target as HTMLElement | null)?.closest('details')?.removeAttribute('open');
+  let el: HTMLElement | null = target as HTMLElement | null;
+  while (el) {
+    const details = el.closest('details');
+    if (!details) return;
+    details.removeAttribute('open');
+    el = details.parentElement;
+  }
 }
 
 export function TopNav() {
   const pathname = usePathname();
-  const pastResultsActive = pathname === '/past-results';
+  const pastResultsActive = pathname.startsWith('/past-results');
 
   return (
     <header className="topbar">
@@ -26,28 +32,69 @@ export function TopNav() {
       </div>
 
       <nav className="nav" aria-label="Primary">
-        {links.map((l) => (
-          <Link key={l.href} href={l.href} data-active={pathname === l.href}>
-            {l.label}
-          </Link>
-        ))}
+        <div className="navDesktop">
+          {links.map((l) => (
+            <Link key={l.href} href={l.href} data-active={pathname === l.href}>
+              {l.label}
+            </Link>
+          ))}
 
-        <details className="navDropdown">
-          <summary data-active={pastResultsActive}>Past Results</summary>
-          <div className="navDropdownMenu">
-            <Link href="/past-results" onClick={(e) => closeDropdown(e.target)}>
-              All
+          <details className="navDropdown">
+            <summary data-active={pastResultsActive}>Past Results</summary>
+            <div className="navDropdownMenu">
+              <Link href="/past-results" onClick={(e) => closeDropdown(e.target)}>
+                All
+              </Link>
+              <Link href="/past-results/old" onClick={(e) => closeDropdown(e.target)}>
+                Old Guys
+              </Link>
+              <Link href="/past-results/young" onClick={(e) => closeDropdown(e.target)}>
+                Young Guys
+              </Link>
+            </div>
+          </details>
+
+          <a href="mailto:barsportstriathlon@gmail.com">Contact BST</a>
+        </div>
+
+        <details className="navMobile">
+          <summary aria-label="Open menu">
+            <span className="hamburger" aria-hidden="true">
+              ☰
+            </span>
+            <span className="srOnly">Menu</span>
+          </summary>
+          <div className="navMobileMenu">
+            <Link href="/" onClick={(e) => closeDropdown(e.target)}>
+              Events
             </Link>
-            <Link href="/past-results/old" onClick={(e) => closeDropdown(e.target)}>
-              Old Guys
+
+            <details className="navMobileSub">
+              <summary>Past Results</summary>
+              <div className="navMobileSubMenu">
+                <Link href="/past-results" onClick={(e) => closeDropdown(e.target)}>
+                  All
+                </Link>
+                <Link href="/past-results/old" onClick={(e) => closeDropdown(e.target)}>
+                  Old Guys
+                </Link>
+                <Link href="/past-results/young" onClick={(e) => closeDropdown(e.target)}>
+                  Young Guys
+                </Link>
+              </div>
+            </details>
+
+            <Link href="/rules" onClick={(e) => closeDropdown(e.target)}>
+              Rules
             </Link>
-            <Link href="/past-results/young" onClick={(e) => closeDropdown(e.target)}>
-              Young Guys
+            <Link href="/payouts" onClick={(e) => closeDropdown(e.target)}>
+              Payouts / Scoring
             </Link>
+            <a href="mailto:barsportstriathlon@gmail.com" onClick={(e) => closeDropdown(e.target)}>
+              Contact BST
+            </a>
           </div>
         </details>
-
-        <a href="mailto:barsportstriathlon@gmail.com">Contact BST</a>
       </nav>
     </header>
   );

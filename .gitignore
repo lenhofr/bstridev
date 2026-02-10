@@ -11,5 +11,8 @@ web/out/
 **/*.tfstate
 **/*.tfstate.*
 
+# Playground assets (not for deploy)
+/img_playground/
+
 # Legacy local folder (not used)
 /terraform/
