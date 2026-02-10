@@ -4,8 +4,9 @@
   --felt-3: #0f2d25;
   --panel: #2f2f2f;
   --panel-2: #272727;
-  --frame: #b6a382;
-  --frame-2: #8f7b58;
+  --frame: #6f3f1c;
+  --frame-2: #3b200d;
+  --frame-3: #c98b48;
   --ink: #f0f0f0;
   --muted: rgba(240, 240, 240, 0.75);
   --rule: rgba(240, 240, 240, 0.25);
@@ -231,17 +232,29 @@ a:hover { text-decoration: underline; }
 }
 
 .frame {
+  position: relative;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 12px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, var(--frame), var(--frame-2));
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  padding: 16px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.25)),
+    url('/wood-grain-tile.jpg');
+  background-size: auto, 320px 320px;
+  background-repeat: no-repeat, repeat;
+  background-position: 0 0, 0 0;
+  background-blend-mode: overlay, multiply;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.22);
 }
 
 .panel {
   position: relative;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 22px 22px 18px;
   background:
     radial-gradient(900px 500px at 30% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
@@ -250,6 +263,9 @@ a:hover { text-decoration: underline; }
   background-size: cover;
   background-position: center;
   border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 6px rgba(0, 0, 0, 0.18);
 }
 
 .panelTitle {
