@@ -7,7 +7,7 @@ export default function Home() {
 
       <h1 className="panelTitle">2025 Events</h1>
       <p className="subtle" style={{ marginTop: -6 }}>
-        Deployed from <strong>bstridev</strong> (Next.js) — v1
+        Deployed from <strong>bstridev</strong> (Next.js) — v2 (pipeline smoke test)
       </p>
 
       <div className="grid2">

@@ -56,9 +56,10 @@ Make **/Users/robl/dev/static/bstridev** the single source of truth for **barspo
 ### 5) Configure GitHub Actions in bstridev
 - [x] Add GitHub repo secret in **lenhofr/bstridev**:
   - [x] `AWS_TERRAFORM_ROLE_ARN`
-- [ ] After merge, confirm workflows run successfully from `bstridev`:
-  - [ ] `Terraform (apply)` succeeds.
-  - [ ] `Deploy (static site)` succeeds (S3 sync + CloudFront invalidation).
+- [x] After merge, confirm workflows run successfully from `bstridev`:
+  - [x] `Terraform (apply)` succeeds.
+  - [x] `Deploy (static site)` succeeds (S3 sync + CloudFront invalidation).
+- [ ] Smoke-test another deploy with a tiny UI change (create PR + merge).
 
 ### 6) Cut over fully to bstridev
 - [ ] Disable/retire pipelines in the old repo (`azure-bst-ui`):
@@ -68,10 +69,10 @@ Make **/Users/robl/dev/static/bstridev** the single source of truth for **barspo
   - [ ] Apply both Terraform stacks.
 
 ### 7) Validation checklist
-- [ ] `curl -I https://barsportsdev.com` shows CloudFront and expected caching/redirect behavior.
-- [ ] Confirm CloudFront distribution **E2EW74R4PEG3E2** origin remains **bstri-site-0db96edf**.
-- [ ] Confirm recent S3 object timestamps update after deploy.
-- [ ] Confirm CloudFront invalidation created after deploy.
+- [x] `curl -I https://barsportsdev.com` shows CloudFront and expected caching/redirect behavior.
+- [x] Confirm CloudFront distribution **E2EW74R4PEG3E2** origin remains **bstri-site-0db96edf**.
+- [x] Confirm recent S3 object timestamps update after deploy.
+- [x] Confirm CloudFront invalidation created after deploy.
 
 ---
 
