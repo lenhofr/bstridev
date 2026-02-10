@@ -12,15 +12,21 @@ export default function Rules() {
 
       <ul className="bullets">
         <li>
-          The Bar Sports Triathlon consists of 3 sporting events hand selected to compliment the alcohol consumption
+          The Bar Sports Triathlon consists of 3 sporting events hand selected to complement the alcohol consumption
           naturally associated with each.
         </li>
         <li>The 3 sports are Bowling, Pool, and Darts.</li>
         <li>Each sport consists of 3 games per event.</li>
         <li>Each game is scored separately and the points are totaled from all games to determine an overall winner.</li>
-        <li>Each game is scored evenly with 1st Place receiving 3 points, 2nd Place receiving 2 points, and 3rd Place receiving 1 point.</li>
+        <li>
+          Each game is scored evenly with 1st Place receiving 3 points, 2nd Place receiving 2 points, and 3rd Place
+          receiving 1 point.
+        </li>
         <li>The organizer has the option to add points for 4th Place (1/2 point) and 5th Place (1/4 point).</li>
-        <li>Entry fee also varies per year based on number of participants and individual game payouts.</li>
+        <li>
+          Entry fee also varies per year based on the number of participants and individual game payouts (see score sheets
+          for suggested payoffs).
+        </li>
       </ul>
 
       <div className="rule" style={{ marginTop: 18 }} />
