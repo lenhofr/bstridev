@@ -54,7 +54,9 @@ export function TopNav() {
             </div>
           </details>
 
-          <a href="mailto:barsportstriathlon@gmail.com">Contact BST</a>
+          <Link href="/contact" data-active={pathname === '/contact'}>
+            Contact
+          </Link>
         </div>
 
         <details className="navMobile">
@@ -90,9 +92,9 @@ export function TopNav() {
             <Link href="/payouts" onClick={(e) => closeDropdown(e.target)}>
               Payouts / Scoring
             </Link>
-            <a href="mailto:barsportstriathlon@gmail.com" onClick={(e) => closeDropdown(e.target)}>
-              Contact BST
-            </a>
+            <Link href="/contact" onClick={(e) => closeDropdown(e.target)} data-active={pathname === '/contact'}>
+              Contact
+            </Link>
           </div>
         </details>
       </nav>
