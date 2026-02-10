@@ -5,19 +5,19 @@ export default function Home() {
     <>
       <PanelIcons />
 
-      <h1 className="panelTitle">2025 Events</h1>
+      <h1 className="panelTitle">2026 Events</h1>
       <p className="subtle" style={{ marginTop: -6 }}>
         Deployed from <strong>bstridev</strong> (Next.js) — v2 (pipeline smoke test)
       </p>
 
       <div className="grid2">
         <section className="card">
-          <h3>Old Guys: February 22nd, 2025</h3>
+          <h3>Old Guys: March 28th, 2026</h3>
           <p className="subtle">The 39th Annual</p>
         </section>
 
         <section className="card">
-          <h3>Young Guys: March 22nd, 2025</h3>
+          <h3>Young Guys: February 28th, 2026</h3>
           <ul>
             <li>Strike and Spare — Erlanger</li>
             <li>Breakers Grill — Florence</li>
