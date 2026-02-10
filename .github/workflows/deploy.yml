@@ -1,0 +1,75 @@
+name: Deploy (static site)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy.yml'
+
+  workflow_run:
+    workflows: ["Terraform (apply)"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-static-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      AWS_REGION: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Install
+        working-directory: web
+        run: npm install --no-audit --no-fund
+
+      - name: Build (Next.js static export)
+        working-directory: web
+        run: npm run build
+
+      - name: Configure AWS credentials (OIDC) for Terraform output
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init (read outputs)
+        working-directory: infra/terraform/app
+        run: terraform init
+
+      - name: Read infra outputs
+        working-directory: infra/terraform/app
+        run: |
+          echo "S3_BUCKET=$(terraform output -raw bucket_name)" >> "$GITHUB_ENV"
+          echo "CLOUDFRONT_DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_ENV"
+          echo "DEPLOY_ROLE_ARN=$(terraform output -raw github_actions_role_arn)" >> "$GITHUB_ENV"
+
+      - name: Configure AWS credentials (OIDC) for deploy
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        run: aws s3 sync web/out s3://${{ env.S3_BUCKET }} --delete
+
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} --paths '/*'
