@@ -13,7 +13,9 @@ Make **/Users/robl/dev/static/bstridev** the single source of truth for **barspo
 - GitHub Actions OIDC IAM roles (existing):
   - **bstri-github-actions-terraform** (used by Terraform workflows)
   - **bstri-github-actions-deploy** (used by deploy workflow)
-  - Both currently trust **repo:lenhofr/azure-bst-ui:\*** (NOT bstridev yet).
+  - Trust policy updated to allow BOTH repos during cutover:
+    - `repo:lenhofr/azure-bst-ui:*`
+    - `repo:lenhofr/bstridev:*`
 - Separate Terraform state for the Terraform-apply role:
   - `s3://tf-state-common-217354297026-us-east-1/bstri/infra/terraform/github-actions-oidc.tfstate`
 - New repo **bstridev** currently contains only a README (empty otherwise).
@@ -28,49 +30,33 @@ Make **/Users/robl/dev/static/bstridev** the single source of truth for **barspo
 ## Workplan
 
 ### 1) Inventory and “source-of-truth” decisions
-- [ ] Confirm what we are migrating for barsportsdev.com:
+- [x] Confirm what we are migrating for barsportsdev.com:
   - Terraform stacks: `infra/terraform/app` and `infra/terraform/github-actions-oidc`
   - CI workflows: Terraform apply/plan + deploy
   - Web app: `web/` Next.js static export
-  - Exclude legacy/unused folders (e.g., root `terraform/`, root static HTML files) unless you explicitly want them.
-- [ ] Confirm target GitHub repo + default branch: `lenhofr/bstridev` on `main`.
+- [x] Confirm target GitHub repo + default branch: `lenhofr/bstridev` on `main`.
 
 ### 2) Build the minimal repo structure in bstridev
-- [ ] Copy only the required directories/files from `bstdevdotcom` → `bstridev`:
-  - [ ] `web/` (source only; exclude `node_modules/`, `.next/`, `out/`)
-  - [ ] `infra/terraform/app/`
-  - [ ] `infra/terraform/github-actions-oidc/`
-  - [ ] `.github/workflows/{terraform.yml,terraform-plan.yml,deploy.yml}`
-  - [ ] Add/adjust `.gitignore` suitable for Next.js + Terraform
-- [ ] Fix the deploy workflow trigger filter:
-  - `deploy.yml` references `docs/deploy.md` but there is no `docs/` folder; either remove that path filter or add the doc (prefer remove to keep minimal).
+- [x] Copy only the required directories/files from `bstdevdotcom` → `bstridev`:
+  - [x] `web/` (source only; excluded `node_modules/`, `.next/`, `out/`)
+  - [x] `infra/terraform/app/`
+  - [x] `infra/terraform/github-actions-oidc/`
+  - [x] `.github/workflows/{terraform.yml,terraform-plan.yml,deploy.yml}`
+  - [x] Add `.gitignore` suitable for Next.js + Terraform
+- [x] Fix the deploy workflow trigger filter (removed `docs/deploy.md` path filter).
 
 ### 3) Update Terraform to support “allowed repos” during cutover
-We need Terraform-managed IAM trust policies to allow both:
-- `lenhofr/azure-bst-ui` (old)
-- `lenhofr/bstridev` (new)
-
-Implementation approach (minimal + reversible):
-- [ ] In **infra/terraform/app**:
-  - [ ] Change from single `github_repository` string → list variable (e.g., `github_repositories = ["lenhofr/azure-bst-ui", "lenhofr/bstridev"]`).
-  - [ ] Update the IAM role assume-role policy to use `StringLike: { "token.actions.githubusercontent.com:sub": ["repo:<old>:*", "repo:<new>:*"] }`.
-  - [ ] Keep the same backend config (`bstri/terraform.tfstate`).
-- [ ] In **infra/terraform/github-actions-oidc**:
-  - [ ] Similarly update trust policy construction to accept a list of repos (or accept `github_repositories` directly).
-  - [ ] Keep the same backend key (`bstri/infra/terraform/github-actions-oidc.tfstate`) via backend-config.
+- [x] Update both Terraform stacks to allow a list of GitHub repositories in the OIDC trust policy.
+  - Defaults include `lenhofr/azure-bst-ui` and `lenhofr/bstridev`.
 
 ### 4) Apply Terraform changes safely (no resource replacement)
-- [ ] From your laptop (AWS-authenticated), run `terraform init` + `terraform plan` for both stacks using the existing backend locations.
-- [ ] Verify plans show **in-place IAM trust policy updates only** (no deletes/recreates of CloudFront/S3/Route53).
-- [ ] `terraform apply` both stacks to update IAM trust so bstridev Actions can assume roles.
+- [x] Run `terraform init/plan/apply` for both stacks against the existing backends.
+- [x] Verified/apply resulted in **in-place IAM trust updates only** (0 destroys).
 
 ### 5) Configure GitHub Actions in bstridev
-- [ ] Add GitHub repo secrets in **lenhofr/bstridev**:
-  - [ ] `AWS_TERRAFORM_ROLE_ARN` = arn of **bstri-github-actions-terraform**
-- [ ] Verify workflows match the moved folder structure:
-  - Terraform apply uses `infra/terraform/app`.
-  - Deploy workflow reads Terraform outputs then assumes deploy role from output.
-- [ ] Make a small test commit to `bstridev` to confirm:
+- [x] Add GitHub repo secret in **lenhofr/bstridev**:
+  - [x] `AWS_TERRAFORM_ROLE_ARN`
+- [ ] After merge, confirm workflows run successfully from `bstridev`:
   - [ ] `Terraform (apply)` succeeds.
   - [ ] `Deploy (static site)` succeeds (S3 sync + CloudFront invalidation).
 
