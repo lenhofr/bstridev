@@ -37,6 +37,14 @@ This repo is currently wired to the existing **barsportsdev.com** stack.
 Live values are defined in `infra/terraform/app/terraform.tfvars`.
 
 ## Local development
+### Using Makefile (recommended)
+```bash
+make web-install
+make web-dev            # default port 3005
+# PORT=3006 make web-dev
+```
+
+### Manual
 ```bash
 cd web
 npm install
@@ -44,6 +52,12 @@ npm run dev
 ```
 
 ## Local build (matches CI)
+### Using Makefile
+```bash
+make web-build
+```
+
+### Manual
 ```bash
 cd web
 npm install
@@ -51,6 +65,13 @@ npm run build
 ```
 
 ## Terraform
+### Using Makefile
+```bash
+make tf-plan
+# make tf-apply
+```
+
+### Manual
 ```bash
 cd infra/terraform/app
 terraform init
