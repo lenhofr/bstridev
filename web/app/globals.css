@@ -339,6 +339,67 @@ ul.bullets {
 
 .table td { color: rgba(255, 255, 255, 0.78); }
 
+.resultsTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 840px) {
+  .resultsGrid {
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  }
+}
+
+.resultsGrid > * {
+  min-width: 0;
+}
+
+.resultsTableWrap {
+  min-width: 0;
+}
+
+.resultsTable {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.resultsTable th,
+.resultsTable td {
+  padding: 7px 8px;
+}
+
+.resultsTable th:first-child {
+  width: 44%;
+}
+
+.resultsTable th:not(:first-child) {
+  width: 14%;
+}
+
+.resultsTable th:not(:first-child),
+.resultsTable td:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .subtle {
   color: rgba(255, 255, 255, 0.6);
   font-size: 13px;

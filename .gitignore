@@ -14,5 +14,8 @@ web/out/
 # Playground assets (not for deploy)
 /img_playground/
 
+# Temp files
+/tmp_content
+
 # Legacy local folder (not used)
 /terraform/

@@ -42,9 +42,6 @@ export function TopNav() {
           <details className="navDropdown">
             <summary data-active={pastResultsActive}>Past Results</summary>
             <div className="navDropdownMenu">
-              <Link href="/past-results" onClick={(e) => closeDropdown(e.target)}>
-                All
-              </Link>
               <Link href="/past-results/old" onClick={(e) => closeDropdown(e.target)}>
                 Old Guys
               </Link>
@@ -74,9 +71,6 @@ export function TopNav() {
             <details className="navMobileSub">
               <summary>Past Results</summary>
               <div className="navMobileSubMenu">
-                <Link href="/past-results" onClick={(e) => closeDropdown(e.target)}>
-                  All
-                </Link>
                 <Link href="/past-results/old" onClick={(e) => closeDropdown(e.target)}>
                   Old Guys
                 </Link>
