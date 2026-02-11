@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "eventId": "fixture-duplicate-places",
+  "year": 2026,
+  "status": "draft",
+  "updatedAt": "1970-01-01T00:00:00.000Z",
+  "updatedBy": null,
+  "publishedAt": null,
+  "publishedBy": null,
+  "eventMeta": {
+    "competitorOrder": [
+      "rob",
+      "joe",
+      "josh"
+    ],
+    "poolTables": [
+      1
+    ],
+    "poolSchedule": {
+      "rounds": []
+    }
+  },
+  "participants": [
+    {
+      "personId": "rob",
+      "displayName": "rob"
+    },
+    {
+      "personId": "joe",
+      "displayName": "joe"
+    },
+    {
+      "personId": "josh",
+      "displayName": "josh"
+    }
+  ],
+  "poolMatches": [],
+  "subEvents": [
+    {
+      "subEventId": "bowling",
+      "label": "Bowling",
+      "games": [
+        {
+          "gameId": "bowling-1",
+          "label": "Bowling Game #1",
+          "results": {
+            "rob": {
+              "place": 1,
+              "raw": 200,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": 1,
+              "raw": 180,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": 150,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "bowling-2",
+          "label": "Bowling Game #2",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "bowling-3",
+          "label": "Bowling Game #3",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "subEventId": "pool",
+      "label": "Pool",
+      "games": [
+        {
+          "gameId": "pool-1",
+          "label": "8 Ball",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "pool-2",
+          "label": "9 Ball",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "pool-3",
+          "label": "Run",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "subEventId": "darts",
+      "label": "Darts",
+      "games": [
+        {
+          "gameId": "darts-1",
+          "label": "Cricket",
+          "results": {
+            "rob": {
+              "place": 2,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": 2,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": 1,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "darts-2",
+          "label": "401 Double Out",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        },
+        {
+          "gameId": "darts-3",
+          "label": "301 Double In/Out",
+          "results": {
+            "rob": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "joe": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            },
+            "josh": {
+              "place": null,
+              "raw": null,
+              "points": null,
+              "attempts": null,
+              "tieBreak": null
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "byPerson": {
+      "rob": {
+        "bySubEvent": {
+          "bowling": 0,
+          "pool": 0,
+          "darts": 0
+        },
+        "triathlon": 0
+      },
+      "joe": {
+        "bySubEvent": {
+          "bowling": 0,
+          "pool": 0,
+          "darts": 0
+        },
+        "triathlon": 0
+      },
+      "josh": {
+        "bySubEvent": {
+          "bowling": 0,
+          "pool": 0,
+          "darts": 0
+        },
+        "triathlon": 0
+      }
+    }
+  }
+}
