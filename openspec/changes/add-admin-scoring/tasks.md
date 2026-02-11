@@ -26,3 +26,7 @@
 ## 6. Validation
 - [ ] 6.1 `make web-build` still succeeds.
 - [ ] 6.2 Terraform plan/apply succeeds in CI.
+
+## 7. Fixtures / test docs
+- [ ] 7.1 Create a small set of **raw JSON scoring documents** for common scenarios (ties, duplicate places, incomplete pool head-to-head, pool run tiebreaker-only).
+- [ ] 7.2 Document how to load these fixtures for local testing (e.g. copy/paste into localStorage, or import via a small dev-only helper).
