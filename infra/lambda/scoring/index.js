@@ -1,7 +1,7 @@
 'use strict';
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -37,6 +37,10 @@ function isPublishPath(p) {
   // /events/{eventId}/publish
   const m = /^\/events\/([^/]+)\/publish$/.exec(p);
   return m ? decodeURIComponent(m[1]) : null;
+}
+
+function isListDocsPath(p) {
+  return p === '/scoring/docs';
 }
 
 async function getDoc(tableName, eventId, kind) {
@@ -90,8 +94,56 @@ exports.handler = async (event) => {
 
   const scoring = getEventIdFromPath(p);
   const publishEventId = isPublishPath(p);
+  const listDocs = isListDocsPath(p);
 
   try {
+    if (listDocs && m === 'GET') {
+      const admin = getAdminIdentity(event);
+      if (!admin) return json(401, { error: 'Unauthorized' });
+
+      const year = event?.queryStringParameters?.year ? Number(event.queryStringParameters.year) : null;
+
+      let startKey = undefined;
+      const items = [];
+      do {
+        const res = await ddb.send(
+          new ScanCommand({
+            TableName: tableName,
+            ExclusiveStartKey: startKey,
+            ...(year != null && Number.isFinite(year)
+              ? {
+                  FilterExpression: '#doc.#year = :y',
+                  ExpressionAttributeNames: { '#doc': 'doc', '#year': 'year' },
+                  ExpressionAttributeValues: { ':y': year }
+                }
+              : {})
+          })
+        );
+        for (const it of res.Items ?? []) items.push(it);
+        startKey = res.LastEvaluatedKey;
+      } while (startKey);
+
+      const out = items
+        .map((it) => {
+          const y = it?.doc?.year;
+          if (typeof y !== 'number') return null;
+          const kind = it?.kind;
+          if (kind !== 'draft' && kind !== 'published') return null;
+          return { eventId: it.eventId, year: y, kind, updatedAt: it.updatedAt ?? null };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          const au = a.updatedAt ?? '';
+          const bu = b.updatedAt ?? '';
+          if (au !== bu) return bu.localeCompare(au);
+          if (a.eventId !== b.eventId) return a.eventId.localeCompare(b.eventId);
+          return a.kind.localeCompare(b.kind);
+        });
+
+      return json(200, out);
+    }
+
     if (scoring && m === 'GET') {
       const item = await getDoc(tableName, scoring.eventId, scoring.kind);
       if (!item) return json(404, { error: 'Not found' });

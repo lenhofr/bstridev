@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { getAccessToken } from '../../../lib/cognito-auth';
-import { hasBackendConfig } from '../../../lib/runtime-config';
+import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
+import { apiGetDraft, apiGetPublished, apiListDocs } from '../../../lib/scoring-api';
+import { listLocalStorageTriathlonDocs, type TriathlonDocSummary } from '../../../lib/triathlon-docs';
 
 import { useScoring } from './scoring-context';
 
@@ -32,10 +34,114 @@ export default function AdminScoringClient() {
   const [newDisplayName, setNewDisplayName] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
 
+  const [availableDocs, setAvailableDocs] = useState<TriathlonDocSummary[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsYearFilter, setDocsYearFilter] = useState<number | null>(null);
+  const [selectedDocKey, setSelectedDocKey] = useState<string>('');
+
   const backend = useMemo(() => hasBackendConfig(), []);
   const authed = !backend || Boolean(getAccessToken());
 
   const participants = doc.participants;
+
+  async function refreshDocs(nextYear: number | null = docsYearFilter) {
+    setDocsLoading(true);
+    try {
+      if (backend) {
+        if (!authed) throw new Error('Login required to list docs.');
+        const accessToken = getAccessToken();
+        if (!accessToken) throw new Error('Not logged in (Cognito)');
+        if (!runtimeConfig.scoringApiBaseUrl) throw new Error('Missing scoringApiBaseUrl');
+
+        const res = await apiListDocs({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl, accessToken, year: nextYear });
+        setAvailableDocs(res);
+      } else {
+        setAvailableDocs(listLocalStorageTriathlonDocs({ year: nextYear }));
+      }
+    } catch (e) {
+      setFlash((e as Error)?.message ?? String(e));
+      setTimeout(() => setFlash(null), 2500);
+    } finally {
+      setDocsLoading(false);
+    }
+  }
+
+  async function onLoadSelected() {
+    const selected = availableDocs.find((d) => `${d.kind}:${d.eventId}` === selectedDocKey);
+    if (!selected) return;
+
+    try {
+      const now = new Date().toISOString();
+
+      if (backend) {
+        if (!runtimeConfig.scoringApiBaseUrl) throw new Error('Missing scoringApiBaseUrl');
+
+        if (selected.kind === 'draft') {
+          const accessToken = getAccessToken();
+          if (!accessToken) throw new Error('Not logged in (Cognito)');
+          const loaded = await apiGetDraft({
+            apiBaseUrl: runtimeConfig.scoringApiBaseUrl,
+            eventId: selected.eventId,
+            accessToken
+          });
+          importDoc({
+            ...loaded,
+            eventId: selected.eventId,
+            year: loaded.year,
+            status: 'draft',
+            updatedAt: now,
+            updatedBy: null,
+            publishedAt: null,
+            publishedBy: null
+          });
+          setFlashMsg('Loaded draft');
+          return;
+        }
+
+        const loaded = await apiGetPublished({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl, eventId: selected.eventId });
+        importDoc({
+          ...loaded,
+          eventId: selected.eventId,
+          year: loaded.year,
+          status: 'draft',
+          updatedAt: now,
+          updatedBy: null,
+          publishedAt: null,
+          publishedBy: null
+        });
+        setFlashMsg('Loaded published → draft');
+        return;
+      }
+
+      const key = `bstri:scoring:${selected.kind}:${selected.eventId}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) throw new Error('No doc found in localStorage.');
+      const loaded = JSON.parse(raw) as typeof doc;
+      importDoc({
+        ...loaded,
+        eventId: selected.eventId,
+        year: loaded.year,
+        status: 'draft',
+        updatedAt: now,
+        updatedBy: null,
+        publishedAt: null,
+        publishedBy: null
+      });
+      setFlashMsg(selected.kind === 'draft' ? 'Loaded draft' : 'Loaded published → draft');
+    } catch (e) {
+      setFlashMsg((e as Error)?.message ?? String(e));
+    }
+  }
+
+  useEffect(() => {
+    setDocsYearFilter(year);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    refreshDocs(docsYearFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, authed, docsYearFilter]);
 
   const baseOrder = doc.eventMeta?.competitorOrder?.length ? doc.eventMeta.competitorOrder : participants.map((p) => p.personId);
   const competitorOrder = [...baseOrder, ...participants.map((p) => p.personId).filter((pid) => !baseOrder.includes(pid))];
@@ -130,6 +236,59 @@ export default function AdminScoringClient() {
       <h2>Setup</h2>
 
       <div className="card" style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>Pick an existing TRI (optional)</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              Year filter
+              <input
+                type="number"
+                value={docsYearFilter ?? ''}
+                onChange={(e) => setDocsYearFilter(e.target.value ? Number(e.target.value) : null)}
+                style={{ width: 90 }}
+              />
+            </label>
+            <button disabled={docsLoading || (backend && !authed)} onClick={() => refreshDocs(docsYearFilter)}>
+              {docsLoading ? 'Loading…' : 'Refresh list'}
+            </button>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Found: {availableDocs.length}</div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select
+              value={selectedDocKey}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSelectedDocKey(v);
+                const found = availableDocs.find((d) => `${d.kind}:${d.eventId}` === v);
+                if (found) {
+                  setEventId(found.eventId);
+                  setYear(found.year);
+                  setDocsYearFilter(found.year);
+                }
+              }}
+            >
+              <option value="">— Select —</option>
+              {availableDocs.map((d) => (
+                <option key={`${d.kind}:${d.eventId}`} value={`${d.kind}:${d.eventId}`}>
+                  {d.eventId} ({d.year}) • {d.kind} • {d.updatedAt ?? '-'}
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={!selectedDocKey || (backend && !authed && selectedDocKey.startsWith('draft:'))}
+              onClick={onLoadSelected}
+            >
+              Load selected
+            </button>
+            {backend && !authed ? (
+              <span style={{ fontSize: 12, color: '#b00020' }}>Login required to list/load drafts.</span>
+            ) : null}
+          </div>
+        </div>
+
+        <hr style={{ width: '100%', opacity: 0.2 }} />
+
         <label>
           Triathlon Name{' '}
           <input value={eventId} onChange={(e) => setEventId(e.target.value)} style={{ marginLeft: 8 }} />
@@ -139,7 +298,11 @@ export default function AdminScoringClient() {
           <input
             type="number"
             value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+            onChange={(e) => {
+              const y = Number(e.target.value);
+              setYear(y);
+              setDocsYearFilter(y);
+            }}
             style={{ marginLeft: 8 }}
           />
         </label>
