@@ -117,6 +117,9 @@ export type ScoringDocumentV1 = {
   poolMatches: PoolMatchResult[];
   subEvents: [SubEvent, SubEvent, SubEvent];
   totals: Totals;
+
+  // If missing (legacy docs), all games are treated as finalized.
+  finalizedGames?: Partial<Record<GameId, boolean>>;
 };
 
 export function createEmptyScoringDocumentV1(params: {
@@ -178,6 +181,7 @@ export function createEmptyScoringDocumentV1(params: {
         ]
       }
     ],
-    totals: { byPerson }
+    totals: { byPerson },
+    finalizedGames: {}
   };
 }

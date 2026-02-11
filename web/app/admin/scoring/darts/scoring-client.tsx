@@ -40,7 +40,7 @@ function sortMark(active: boolean, dir: SortDir) {
 }
 
 export default function DartsScoringClient() {
-  const { doc, setPlace } = useScoring();
+  const { doc, setPlace, setGameFinalized } = useScoring();
   const participants = doc.participants;
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
 
@@ -83,9 +83,17 @@ export default function DartsScoringClient() {
             return cmpNum(a.r.points, b.r.points, sort.dir);
           });
 
+        const finalized = Object.prototype.hasOwnProperty.call(doc, 'finalizedGames') ? Boolean(doc.finalizedGames?.[g.gameId]) : true;
+
         return (
           <section key={g.gameId} style={{ marginTop: 12 }}>
-            <h3 style={{ margin: '0 0 8px' }}>{g.label}</h3>
+            <h3 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>{g.label}</span>
+              <button onClick={() => setGameFinalized(g.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
+                {finalized ? 'Mark incomplete' : 'Mark complete'}
+              </button>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
+            </h3>
             {dupPlaces.length > 0 && (
               <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>
                 Duplicate place(s): {dupPlaces.join(', ')}. Resolve via tie-break, then assign unique places.
