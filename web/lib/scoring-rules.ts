@@ -207,6 +207,10 @@ function ensurePoolMatchWinsRaw(params: {
     if (wins[winner] != null) wins[winner] += 1;
   }
 
+  // Byes count as wins.
+  for (const r of params.doc.eventMeta?.poolSchedule?.rounds ?? []) {
+    if (r.bye && wins[r.bye] != null) wins[r.bye] += 1;
+  }
 
   const results: Game['results'] = { ...params.game.results };
   for (const p of params.doc.participants) {
