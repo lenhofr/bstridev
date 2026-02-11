@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 
+import { apiGetPublished } from '../../lib/scoring-api';
+import { hasBackendConfig, runtimeConfig } from '../../lib/runtime-config';
 import type { Game, ScoringDocumentV1, SubEvent } from '../../lib/scoring-model';
 import { emptyGameResult } from '../../lib/scoring-rules';
 
@@ -207,24 +209,36 @@ export default function PublishedScoringClient() {
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
   const [totalsSort, setTotalsSort] = useState<SortSpec>({ key: 'triathlon', dir: 'desc' });
 
-  function onLoad() {
-    const loaded = loadPublishedDoc(publishedKey);
-    if (!loaded) {
+  async function onLoad() {
+    try {
+      if (hasBackendConfig()) {
+        const loaded = await apiGetPublished({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId });
+        setError(null);
+        setDoc(loaded);
+        return;
+      }
+
+      const loaded = loadPublishedDoc(publishedKey);
+      if (!loaded) {
+        setDoc(null);
+        setError('No published doc found in localStorage for this Triathlon Name.');
+        return;
+      }
+      setError(null);
+      setDoc(loaded);
+    } catch (e) {
       setDoc(null);
-      setError('No published doc found in localStorage for this Triathlon Name.');
-      return;
+      setError((e as Error)?.message ?? String(e));
     }
-    setError(null);
-    setDoc(loaded);
   }
 
   return (
     <div style={{ padding: 16 }}>
       <h1 className="panelTitle" style={{ marginBottom: 4 }}>
-        Published Results (Local Mock)
+        Published Results
       </h1>
       <p className="kicker" style={{ marginTop: 0 }}>
-        Loads the published scoring document from localStorage.
+        Loads from the AWS scoring API when configured; otherwise uses localStorage.
       </p>
 
       <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -25,6 +25,11 @@ Two workflows are involved:
     - `bucket_name`
     - `cloudfront_distribution_id`
     - `github_actions_role_arn` (deploy role)
+    - `scoring_api_base_url`
+    - `cognito_hosted_ui_domain`
+    - `cognito_user_pool_client_id`
+    - `cognito_user_pool_id`
+  - Exports those backend values as build-time env vars (`NEXT_PUBLIC_*`) so the static site can call AWS.
   - Syncs `web/out` to the S3 bucket and creates a CloudFront invalidation
 
 ### Environments / state
@@ -37,6 +42,11 @@ This repo is currently wired to the existing **barsportsdev.com** stack.
 Live values are defined in `infra/terraform/app/terraform.tfvars`.
 
 ## Local development
+By default the scoring UI uses localStorage; to use the AWS backend locally, set:
+- `NEXT_PUBLIC_SCORING_API_BASE_URL`
+- `NEXT_PUBLIC_COGNITO_HOSTED_UI_DOMAIN`
+- `NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID`
+
 ### Using Makefile (recommended)
 ```bash
 make web-install
