@@ -216,11 +216,6 @@ export default function PoolScoringClient() {
         rounds.map((r) => (
           <section key={r.round} style={{ marginTop: 12 }}>
             <h4 style={{ margin: '0 0 6px' }}>Round {r.round}</h4>
-            {r.bye && (
-              <p className="kicker" style={{ marginTop: 0 }}>
-                Bye: <b>{displayName(r.bye)}</b> (counts as a win for both 8-ball and 9-ball)
-              </p>
-            )}
             <div className="card">
               <table className="table">
                 <thead>
@@ -266,60 +261,82 @@ export default function PoolScoringClient() {
                         return cmpStr(labelA, labelB, matchSort.dir) || a.idx - b.idx;
                       });
 
-                    return sortedMatches.map(({ m }) => {
-                      const key = matchKey({ round: r.round, a: m.a, b: m.b });
-                      const existing = doc.poolMatches.find((x) => x.round === r.round && x.a === m.a && x.b === m.b);
-                      const cur = partial[key] ?? { w8: existing?.winner8Ball ?? null, w9: existing?.winner9Ball ?? null };
-                      const done = !!(cur.w8 && cur.w9);
+                    return (
+                      <>
+                        {sortedMatches.map(({ m }) => {
+                          const key = matchKey({ round: r.round, a: m.a, b: m.b });
+                          const existing = doc.poolMatches.find((x) => x.round === r.round && x.a === m.a && x.b === m.b);
+                          const cur = partial[key] ?? { w8: existing?.winner8Ball ?? null, w9: existing?.winner9Ball ?? null };
+                          const done = !!(cur.w8 && cur.w9);
 
-                      return (
-                        <tr key={key}>
-                          <td>{m.table}</td>
-                          <td>
-                            {displayName(m.a)} vs {displayName(m.b)}
-                          </td>
-                          <td>
-                            <select
-                              value={cur.w8 ?? ''}
-                              onChange={(e) =>
-                                setWinner({
-                                  round: r.round,
-                                  a: m.a,
-                                  b: m.b,
-                                  table: m.table,
-                                  which: 'w8',
-                                  winner: e.target.value === '' ? null : e.target.value
-                                })
-                              }
-                            >
-                              <option value="">—</option>
-                              <option value={m.a}>{displayName(m.a)}</option>
-                              <option value={m.b}>{displayName(m.b)}</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                              value={cur.w9 ?? ''}
-                              onChange={(e) =>
-                                setWinner({
-                                  round: r.round,
-                                  a: m.a,
-                                  b: m.b,
-                                  table: m.table,
-                                  which: 'w9',
-                                  winner: e.target.value === '' ? null : e.target.value
-                                })
-                              }
-                            >
-                              <option value="">—</option>
-                              <option value={m.a}>{displayName(m.a)}</option>
-                              <option value={m.b}>{displayName(m.b)}</option>
-                            </select>
-                          </td>
-                          <td>{done ? 'Complete' : 'Incomplete'}</td>
-                        </tr>
-                      );
-                    });
+                          return (
+                            <tr key={key}>
+                              <td>{m.table}</td>
+                              <td>
+                                {displayName(m.a)} vs {displayName(m.b)}
+                              </td>
+                              <td>
+                                <select
+                                  value={cur.w8 ?? ''}
+                                  onChange={(e) =>
+                                    setWinner({
+                                      round: r.round,
+                                      a: m.a,
+                                      b: m.b,
+                                      table: m.table,
+                                      which: 'w8',
+                                      winner: e.target.value === '' ? null : e.target.value
+                                    })
+                                  }
+                                >
+                                  <option value="">—</option>
+                                  <option value={m.a}>{displayName(m.a)}</option>
+                                  <option value={m.b}>{displayName(m.b)}</option>
+                                </select>
+                              </td>
+                              <td>
+                                <select
+                                  value={cur.w9 ?? ''}
+                                  onChange={(e) =>
+                                    setWinner({
+                                      round: r.round,
+                                      a: m.a,
+                                      b: m.b,
+                                      table: m.table,
+                                      which: 'w9',
+                                      winner: e.target.value === '' ? null : e.target.value
+                                    })
+                                  }
+                                >
+                                  <option value="">—</option>
+                                  <option value={m.a}>{displayName(m.a)}</option>
+                                  <option value={m.b}>{displayName(m.b)}</option>
+                                </select>
+                              </td>
+                              <td>{done ? 'Complete' : 'Incomplete'}</td>
+                            </tr>
+                          );
+                        })}
+
+                        {r.bye && (
+                          <tr key={`bye:${r.round}:${r.bye}`}>
+                            <td>Bye</td>
+                            <td>{displayName(r.bye)} (bye)</td>
+                            <td>
+                              <select value={r.bye} disabled>
+                                <option value={r.bye}>{displayName(r.bye)}</option>
+                              </select>
+                            </td>
+                            <td>
+                              <select value={r.bye} disabled>
+                                <option value={r.bye}>{displayName(r.bye)}</option>
+                              </select>
+                            </td>
+                            <td>Complete</td>
+                          </tr>
+                        )}
+                      </>
+                    );
                   })()}
                 </tbody>
               </table>
