@@ -28,6 +28,7 @@ export default function AdminScoringLayout(props: { children: React.ReactNode })
           <Link href="/admin/scoring/bowling">Bowling</Link>
           <Link href="/admin/scoring/pool">Pool</Link>
           <Link href="/admin/scoring/darts">Darts</Link>
+          <Link href="/scoring">Published (view)</Link>
         </div>
 
         {props.children}
