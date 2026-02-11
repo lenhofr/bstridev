@@ -110,11 +110,37 @@ export function ensurePoolRunRawFromAttempts(game: Game): Game {
 
   const results: Game['results'] = { ...game.results };
   for (const [personId, r] of Object.entries(results)) {
-    const raw = r.raw ?? computePoolRunOfficialRawFromAttempts(r.attempts);
+    const computed = computePoolRunOfficialRawFromAttempts(r.attempts);
+    const raw = computed ?? r.raw;
     results[personId] = { ...r, raw };
   }
 
   return { ...game, results };
+}
+
+function ensurePoolMatchWinsRaw(params: {
+  doc: ScoringDocumentV1;
+  game: Game;
+  winnerKey: 'winner8Ball' | 'winner9Ball';
+}): Game {
+  const wins: Record<string, number> = Object.fromEntries(params.doc.participants.map((p) => [p.personId, 0]));
+
+  for (const m of params.doc.poolMatches) {
+    const winner = m[params.winnerKey];
+    if (wins[winner] != null) wins[winner] += 1;
+  }
+
+  for (const r of params.doc.eventMeta?.poolSchedule?.rounds ?? []) {
+    if (r.bye && wins[r.bye] != null) wins[r.bye] += 1;
+  }
+
+  const results: Game['results'] = { ...params.game.results };
+  for (const p of params.doc.participants) {
+    const prev = results[p.personId] ?? emptyGameResult();
+    results[p.personId] = { ...prev, raw: wins[p.personId] ?? 0 };
+  }
+
+  return { ...params.game, results };
 }
 
 export function validateTieBreak(tb: TieBreak | null): string[] {
@@ -169,7 +195,14 @@ export function recomputeDocumentDerivedFields(params: {
     const games = se.games.map((g) => {
       // Raw-based ranking games
       if (g.gameId.startsWith('bowling-') || g.gameId.startsWith('pool-')) {
-        const withRaw = g.gameId === 'pool-3' ? ensurePoolRunRawFromAttempts(g) : g;
+        const withRaw =
+          g.gameId === 'pool-3'
+            ? ensurePoolRunRawFromAttempts(g)
+            : g.gameId === 'pool-1'
+              ? ensurePoolMatchWinsRaw({ doc: params.doc, game: g, winnerKey: 'winner8Ball' })
+              : g.gameId === 'pool-2'
+                ? ensurePoolMatchWinsRaw({ doc: params.doc, game: g, winnerKey: 'winner9Ball' })
+                : g;
 
         const rawCounts = new Map<number, number>();
         for (const r of Object.values(withRaw.results)) {

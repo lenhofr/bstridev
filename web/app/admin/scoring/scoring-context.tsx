@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-import type { Participant, ScoringDocumentV1 } from '../../../lib/scoring-model';
+import type { EventMeta, Participant, PoolMatchResult, ScoringDocumentV1 } from '../../../lib/scoring-model';
 import { createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
 import { emptyGameResult, OPTIONAL_4TH_5TH_POINTS, recomputeDocumentDerivedFields } from '../../../lib/scoring-rules';
 
@@ -61,8 +61,14 @@ type ScoringCtx = {
   updateParticipantDisplayName: (personId: string, displayName: string) => void;
   deleteParticipant: (personId: string) => void;
 
+  setEventMeta: (eventMeta: EventMeta | null) => void;
+  setPoolMatches: (poolMatches: PoolMatchResult[]) => void;
+  upsertPoolMatch: (match: PoolMatchResult) => void;
+  removePoolMatch: (params: { round: number; a: string; b: string }) => void;
+
   setRaw: (gameId: string, personId: string, raw: number | null) => void;
   setPlace: (gameId: string, personId: string, place: number | null) => void;
+  setAttempts: (gameId: string, personId: string, attempts: number[] | null) => void;
 };
 
 const Ctx = createContext<ScoringCtx | null>(null);
@@ -167,7 +173,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         ? null
         : {
             ...doc.eventMeta,
-            competitorOrder: doc.eventMeta.competitorOrder.filter((pid) => pid !== personId)
+            competitorOrder: doc.eventMeta.competitorOrder.filter((pid) => pid !== personId),
+            poolSchedule: { rounds: [] }
           };
 
     const next = recomputeDocumentDerivedFields({
@@ -196,12 +203,55 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(next);
   }
 
+  function setEventMeta(eventMeta: EventMeta | null) {
+    const next = recomputeDocumentDerivedFields({
+      doc: { ...doc, eventMeta },
+      pointsSchedule: DEFAULT_POINTS_SCHEDULE
+    });
+    setDoc(next);
+  }
+
+  function setPoolMatches(poolMatches: PoolMatchResult[]) {
+    const next = recomputeDocumentDerivedFields({
+      doc: { ...doc, poolMatches },
+      pointsSchedule: DEFAULT_POINTS_SCHEDULE
+    });
+    setDoc(next);
+  }
+
+  function upsertPoolMatch(match: PoolMatchResult) {
+    const poolMatches = [...doc.poolMatches.filter((m) => !(m.round === match.round && m.a === match.a && m.b === match.b)), match];
+    setPoolMatches(poolMatches);
+  }
+
+  function removePoolMatch(params: { round: number; a: string; b: string }) {
+    setPoolMatches(doc.poolMatches.filter((m) => !(m.round === params.round && m.a === params.a && m.b === params.b)));
+  }
+
   function setPlace(gameId: string, personId: string, place: number | null) {
     const subEvents = doc.subEvents.map((se) => {
       const games = se.games.map((g) => {
         if (g.gameId !== gameId) return g;
         const prev = g.results[personId] ?? emptyGameResult();
         return { ...g, results: { ...g.results, [personId]: { ...prev, place } } };
+      }) as typeof se.games;
+      return { ...se, games };
+    }) as ScoringDocumentV1['subEvents'];
+
+    const next = recomputeDocumentDerivedFields({
+      doc: { ...doc, subEvents },
+      pointsSchedule: DEFAULT_POINTS_SCHEDULE
+    });
+
+    setDoc(next);
+  }
+
+  function setAttempts(gameId: string, personId: string, attempts: number[] | null) {
+    const subEvents = doc.subEvents.map((se) => {
+      const games = se.games.map((g) => {
+        if (g.gameId !== gameId) return g;
+        const prev = g.results[personId] ?? emptyGameResult();
+        return { ...g, results: { ...g.results, [personId]: { ...prev, attempts, raw: null } } };
       }) as typeof se.games;
       return { ...se, games };
     }) as ScoringDocumentV1['subEvents'];
@@ -231,8 +281,13 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         addParticipant,
         updateParticipantDisplayName,
         deleteParticipant,
+        setEventMeta,
+        setPoolMatches,
+        upsertPoolMatch,
+        removePoolMatch,
         setRaw,
-        setPlace
+        setPlace,
+        setAttempts
       }}
     >
       {props.children}
