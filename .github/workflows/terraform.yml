@@ -25,6 +25,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: us-east-1
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build scoring lambda bundle
+        working-directory: infra/lambda/scoring
+        run: npm ci --no-audit --no-fund && npm run build
+
       - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init

@@ -6,6 +6,10 @@ web/node_modules/
 web/.next/
 web/out/
 
+# Lambda build artifacts
+infra/lambda/**/node_modules/
+infra/lambda/**/dist/
+
 # Terraform
 **/.terraform/
 **/*.tfstate

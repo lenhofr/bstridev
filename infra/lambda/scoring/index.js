@@ -1,8 +1,9 @@
 'use strict';
 
-const AWS = require('aws-sdk');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
-const ddb = new AWS.DynamoDB.DocumentClient();
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function json(statusCode, body, extraHeaders) {
   return {
@@ -39,12 +40,12 @@ function isPublishPath(p) {
 }
 
 async function getDoc(tableName, eventId, kind) {
-  const res = await ddb
-    .get({
+  const res = await ddb.send(
+    new GetCommand({
       TableName: tableName,
       Key: { eventId, kind }
     })
-    .promise();
+  );
   return res.Item || null;
 }
 
@@ -58,12 +59,12 @@ async function putDoc(tableName, eventId, kind, doc, admin) {
     doc
   };
 
-  await ddb
-    .put({
+  await ddb.send(
+    new PutCommand({
       TableName: tableName,
       Item: next
     })
-    .promise();
+  );
 
   return next;
 }

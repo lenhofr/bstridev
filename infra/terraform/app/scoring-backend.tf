@@ -98,7 +98,7 @@ resource "aws_dynamodb_table" "scoring_docs" {
 
 data "archive_file" "scoring_lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/../../lambda/scoring/index.js"
+  source_file = "${path.module}/../../lambda/scoring/dist/index.js"
   output_path = "${path.module}/.terraform/scoring-lambda.zip"
 }
 
