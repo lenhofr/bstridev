@@ -1,5 +1,12 @@
 import type { ScoringDocumentV1 } from './scoring-model';
 
+export type ScoringDocSummary = {
+  eventId: string;
+  year: number;
+  kind: 'draft' | 'published';
+  updatedAt: string | null;
+};
+
 export async function apiGetPublished(params: { apiBaseUrl: string; eventId: string }): Promise<ScoringDocumentV1> {
   const res = await fetch(`${params.apiBaseUrl}/events/${encodeURIComponent(params.eventId)}/scoring/published`);
   if (!res.ok) throw new Error(`Failed to load published doc (${res.status})`);
@@ -47,4 +54,17 @@ export async function apiPublish(params: {
   });
   if (!res.ok) throw new Error(`Failed to publish (${res.status})`);
   return (await res.json()) as { ok: true; publishedAt: string };
+}
+
+export async function apiListDocs(params: {
+  apiBaseUrl: string;
+  accessToken: string;
+  year?: number | null;
+}): Promise<ScoringDocSummary[]> {
+  const qs = params.year != null ? `?year=${encodeURIComponent(String(params.year))}` : '';
+  const res = await fetch(`${params.apiBaseUrl}/scoring/docs${qs}`, {
+    headers: { authorization: `Bearer ${params.accessToken}` }
+  });
+  if (!res.ok) throw new Error(`Failed to list docs (${res.status})`);
+  return (await res.json()) as ScoringDocSummary[];
 }

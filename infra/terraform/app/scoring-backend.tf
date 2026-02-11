@@ -132,7 +132,8 @@ data "aws_iam_policy_document" "scoring_lambda" {
   statement {
     actions = [
       "dynamodb:GetItem",
-      "dynamodb:PutItem"
+      "dynamodb:PutItem",
+      "dynamodb:Scan"
     ]
     resources = [aws_dynamodb_table.scoring_docs.arn]
   }
@@ -217,6 +218,14 @@ resource "aws_apigatewayv2_route" "draft_get" {
 resource "aws_apigatewayv2_route" "draft_put" {
   api_id             = aws_apigatewayv2_api.scoring.id
   route_key          = "PUT /events/{eventId}/scoring/draft"
+  target             = "integrations/${aws_apigatewayv2_integration.scoring.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.scoring.id
+}
+
+resource "aws_apigatewayv2_route" "docs_list_get" {
+  api_id             = aws_apigatewayv2_api.scoring.id
+  route_key          = "GET /scoring/docs"
   target             = "integrations/${aws_apigatewayv2_integration.scoring.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.scoring.id
