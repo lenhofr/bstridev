@@ -72,7 +72,7 @@ resource "aws_cognito_user_pool_client" "admin" {
 }
 
 resource "aws_cognito_user_pool_domain" "admin" {
-  domain       = "${regexreplace(var.project_name, "[^a-zA-Z0-9-]", "-")}-${random_id.cognito_domain_suffix.hex}"
+  domain       = "${replace(lower(var.project_name), "/[^a-z0-9-]/", "-")}-${random_id.cognito_domain_suffix.hex}"
   user_pool_id = aws_cognito_user_pool.admin.id
 }
 
