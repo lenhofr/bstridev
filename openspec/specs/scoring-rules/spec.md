@@ -114,11 +114,16 @@ Each pool game SHALL award points by placing, using the same point schedule as o
 
 #### Scenario: Bye handling
 - **WHEN** the number of participants is odd and a participant has a bye in a round
-- **THEN** the bye SHALL count as a win for that participant for the 8-ball game
+- **THEN** the bye SHALL NOT count as a win for that participant for the 8-ball game
 
 #### Scenario: Determine game placings
 - **WHEN** all 8-ball matches are complete
 - **THEN** overall placings for the 8-ball game SHALL be determined by total match wins
+
+#### Scenario: Schedule exists but matches are incomplete
+- **GIVEN** an 8-ball schedule exists
+- **WHEN** one or more scheduled matches do not yet have a recorded winner
+- **THEN** overall placings and points for the 8-ball game SHALL remain unset
 
 #### Scenario: Tie-break by head-to-head
 - **WHEN** two or more participants are tied in 8-ball match wins
@@ -174,11 +179,16 @@ Each pool game SHALL award points by placing, using the same point schedule as o
 
 #### Scenario: Bye handling
 - **WHEN** the number of participants is odd and a participant has a bye in a round
-- **THEN** the bye SHALL count as a win for that participant for the 9-ball game
+- **THEN** the bye SHALL NOT count as a win for that participant for the 9-ball game
 
 #### Scenario: Determine game placings
 - **WHEN** all 9-ball matches are complete
 - **THEN** overall placings for the 9-ball game SHALL be determined by total match wins
+
+#### Scenario: Schedule exists but matches are incomplete
+- **GIVEN** a 9-ball schedule exists
+- **WHEN** one or more scheduled matches do not yet have a recorded winner
+- **THEN** overall placings and points for the 9-ball game SHALL remain unset
 
 #### Scenario: Tie-break by head-to-head
 - **WHEN** two or more participants are tied in 9-ball match wins
