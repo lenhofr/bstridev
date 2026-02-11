@@ -20,7 +20,9 @@ export default function AdminScoringClient() {
     importDoc,
     addParticipant,
     updateParticipantDisplayName,
-    deleteParticipant
+    deleteParticipant,
+    setEventMeta,
+    setPoolMatches
   } = useScoring();
 
   const [newPersonId, setNewPersonId] = useState('');
@@ -29,10 +31,68 @@ export default function AdminScoringClient() {
 
   const participants = doc.participants;
 
+  const baseOrder = doc.eventMeta?.competitorOrder?.length ? doc.eventMeta.competitorOrder : participants.map((p) => p.personId);
+  const competitorOrder = [...baseOrder, ...participants.map((p) => p.personId).filter((pid) => !baseOrder.includes(pid))];
+
+  const participantsById = new Map(participants.map((p) => [p.personId, p] as const));
+  const orderedParticipants = competitorOrder.map((pid) => participantsById.get(pid)).filter(Boolean);
+
+  function ensureMetaBase() {
+    return (
+      doc.eventMeta ?? {
+        competitorOrder: participants.map((p) => p.personId),
+        poolTables: [1, 2],
+        poolSchedule: { rounds: [] }
+      }
+    );
+  }
+
+  function hasPoolData() {
+    return (doc.eventMeta?.poolSchedule?.rounds?.length ?? 0) > 0 || doc.poolMatches.length > 0;
+  }
+
+  function setFlashMsg(msg: string) {
+    setFlash(msg);
+    setTimeout(() => setFlash(null), 2500);
+  }
+
+  function onResetPoolSchedule() {
+    if (!hasPoolData()) return;
+    if (!confirm('Reset pool schedule and clear ALL pool match results?')) return;
+    const base = ensureMetaBase();
+    setPoolMatches([]);
+    setEventMeta({ ...base, poolSchedule: { rounds: [] } });
+    setFlashMsg('Reset pool schedule/matches');
+  }
+
+  function setOrder(nextOrder: string[]) {
+    if (hasPoolData() && !confirm('Changing competitor order will clear the pool schedule and ALL pool match results. Continue?')) return;
+    const base = ensureMetaBase();
+    setPoolMatches([]);
+    setEventMeta({ ...base, competitorOrder: nextOrder, poolSchedule: { rounds: [] } });
+    setFlashMsg('Updated competitor order');
+  }
+
+  function moveInOrder(personId: string, dir: -1 | 1) {
+    const i = competitorOrder.indexOf(personId);
+    if (i < 0) return;
+    const j = i + dir;
+    if (j < 0 || j >= competitorOrder.length) return;
+    const next = [...competitorOrder];
+    [next[i], next[j]] = [next[j], next[i]];
+    setOrder(next);
+  }
+
   function onAddCompetitor() {
     const personId = newPersonId.trim();
     const displayName = newDisplayName.trim() || personId;
     if (!personId) return;
+    if (participants.some((p) => p.personId === personId)) {
+      setFlashMsg(`Competitor already exists: ${personId}`);
+      return;
+    }
+
+    if (hasPoolData() && !confirm('Adding a competitor will clear the pool schedule and ALL pool match results. Continue?')) return;
 
     addParticipant({ personId, displayName });
     setNewPersonId('');
@@ -124,6 +184,9 @@ export default function AdminScoringClient() {
           onChange={(e) => setNewDisplayName(e.target.value)}
         />
         <button onClick={onAddCompetitor}>Add</button>
+        <button onClick={onResetPoolSchedule} disabled={!hasPoolData()}>
+          Reset pool
+        </button>
         <div style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.85 }}>Count: {participants.length}</div>
       </div>
 
@@ -135,11 +198,12 @@ export default function AdminScoringClient() {
                 <th style={{ width: 60 }}>#</th>
                 <th>personId</th>
                 <th>displayName</th>
+                <th style={{ width: 140 }}>Order</th>
                 <th style={{ width: 110 }} />
               </tr>
             </thead>
             <tbody>
-              {participants.map((p, idx) => (
+              {orderedParticipants.map((p, idx) => (
                 <tr key={p.personId}>
                   <td>{idx + 1}</td>
                   <td>
@@ -152,9 +216,24 @@ export default function AdminScoringClient() {
                     />
                   </td>
                   <td>
+                    <button onClick={() => moveInOrder(p.personId, -1)} disabled={idx === 0}>
+                      Up
+                    </button>{' '}
+                    <button onClick={() => moveInOrder(p.personId, 1)} disabled={idx === competitorOrder.length - 1}>
+                      Down
+                    </button>
+                  </td>
+                  <td>
                     <button
                       onClick={() => {
-                        if (confirm(`Delete competitor ${p.displayName} (${p.personId})?`)) deleteParticipant(p.personId);
+                        if (
+                          confirm(
+                            `Delete competitor ${p.displayName} (${p.personId})? This will clear the pool schedule and ALL pool match results.`
+                          )
+                        ) {
+                          deleteParticipant(p.personId);
+                          setFlashMsg('Deleted competitor');
+                        }
                       }}
                     >
                       Delete

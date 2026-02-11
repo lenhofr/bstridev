@@ -143,8 +143,18 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
 
   function addParticipant(p: Participant) {
     const participants = [...doc.participants, p];
+
+    const eventMeta =
+      doc.eventMeta == null
+        ? null
+        : {
+            ...doc.eventMeta,
+            competitorOrder: [...doc.eventMeta.competitorOrder, p.personId],
+            poolSchedule: { rounds: [] }
+          };
+
     const next = recomputeDocumentDerivedFields({
-      doc: { ...doc, participants },
+      doc: { ...doc, participants, eventMeta, poolMatches: eventMeta ? [] : doc.poolMatches },
       pointsSchedule: DEFAULT_POINTS_SCHEDULE
     });
     setDoc(next);
@@ -166,9 +176,7 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
       return { ...se, games };
     }) as ScoringDocumentV1['subEvents'];
 
-    const poolMatches = doc.poolMatches.filter(
-      (m) => m.a !== personId && m.b !== personId && m.winner8Ball !== personId && m.winner9Ball !== personId
-    );
+    const poolMatches: PoolMatchResult[] = [];
 
     const eventMeta =
       doc.eventMeta == null
