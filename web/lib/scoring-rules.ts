@@ -167,9 +167,22 @@ export function recomputeDocumentDerivedFields(params: {
 
   const subEvents = params.doc.subEvents.map((se) => {
     const games = se.games.map((g) => {
-      if (g.gameId.startsWith('bowling-')) return computeBowlingGameFromRaw({ game: g, pointsSchedule });
-      if (g.gameId === 'pool-3') return ensurePoolRunRawFromAttempts(g);
-      return g;
+      // Raw-based ranking games
+      if (g.gameId.startsWith('bowling-') || g.gameId.startsWith('pool-')) {
+        const withRaw = g.gameId === 'pool-3' ? ensurePoolRunRawFromAttempts(g) : g;
+        const places = computePlacesFromRawDescending({
+          byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
+        });
+        return applyPlacesAndPointsToGame({ game: withRaw, places, pointsSchedule });
+      }
+
+      // Place-entered games (darts)
+      const results: Game['results'] = { ...g.results };
+      for (const [personId, r] of Object.entries(results)) {
+        const points = r.place != null ? pointsForPlace(r.place, pointsSchedule) : null;
+        results[personId] = { ...r, points };
+      }
+      return { ...g, results };
     }) as typeof se.games;
 
     return { ...se, games };
