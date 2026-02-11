@@ -18,15 +18,26 @@ export default function BowlingScoringClient() {
 
       {bowling?.games.map((g) => {
         const rawCounts = new Map<number, number>();
+        const placeCounts = new Map<number, number>();
         for (const p of participants) {
-          const raw = (g.results[p.personId] ?? emptyGameResult()).raw;
-          if (typeof raw !== 'number') continue;
-          rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+          const r = g.results[p.personId] ?? emptyGameResult();
+          if (typeof r.raw === 'number') rawCounts.set(r.raw, (rawCounts.get(r.raw) ?? 0) + 1);
+          if (typeof r.place === 'number') placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
         }
+
+        const dupPlaces = [...placeCounts.entries()]
+          .filter(([, n]) => n > 1)
+          .map(([pl]) => pl)
+          .sort((a, b) => a - b);
 
         return (
           <section key={g.gameId} style={{ marginTop: 12 }}>
             <h3 style={{ margin: '0 0 8px' }}>{g.label}</h3>
+            {dupPlaces.length > 0 && (
+              <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>
+                Duplicate place(s): {dupPlaces.join(', ')}. Resolve and assign unique places.
+              </p>
+            )}
             <div className="card">
               <table className="table">
                 <thead>
@@ -41,6 +52,7 @@ export default function BowlingScoringClient() {
                   {participants.map((p) => {
                     const r = g.results[p.personId] ?? emptyGameResult();
                     const isTie = typeof r.raw === 'number' && (rawCounts.get(r.raw) ?? 0) > 1;
+                    const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
                     return (
                       <tr key={p.personId}>
                         <td>{p.displayName}</td>
@@ -59,6 +71,7 @@ export default function BowlingScoringClient() {
                               onChange={(e) =>
                                 setPlace(g.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                               }
+                              style={isDup ? { border: '2px solid #b00020' } : undefined}
                             />
                           ) : (
                             r.place ?? '-'

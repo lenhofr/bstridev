@@ -182,13 +182,25 @@ export function recomputeDocumentDerivedFields(params: {
         });
 
         const results: Game['results'] = { ...withRaw.results };
+
+        const nextPlaces: Record<string, number | null> = {};
         for (const [personId, prev] of Object.entries(results)) {
           const raw = prev.raw;
           const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
           const computedPlace = places[personId] ?? null;
+          nextPlaces[personId] = raw == null ? null : isTie ? (prev.place ?? null) : computedPlace;
+        }
 
-          const place = raw == null ? null : isTie ? (prev.place ?? null) : computedPlace;
-          const points = place != null ? pointsForPlace(place, pointsSchedule) : null;
+        const placeCounts = new Map<number, number>();
+        for (const pl of Object.values(nextPlaces)) {
+          if (typeof pl !== 'number') continue;
+          placeCounts.set(pl, (placeCounts.get(pl) ?? 0) + 1);
+        }
+
+        for (const [personId, prev] of Object.entries(results)) {
+          const place = nextPlaces[personId] ?? null;
+          const isDup = typeof place === 'number' && (placeCounts.get(place) ?? 0) > 1;
+          const points = !isDup && place != null ? pointsForPlace(place, pointsSchedule) : null;
           results[personId] = { ...prev, place, points };
         }
 
@@ -197,8 +209,16 @@ export function recomputeDocumentDerivedFields(params: {
 
       // Place-entered games (darts)
       const results: Game['results'] = { ...g.results };
+
+      const placeCounts = new Map<number, number>();
+      for (const r of Object.values(results)) {
+        if (typeof r.place !== 'number') continue;
+        placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
+      }
+
       for (const [personId, r] of Object.entries(results)) {
-        const points = r.place != null ? pointsForPlace(r.place, pointsSchedule) : null;
+        const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
+        const points = !isDup && r.place != null ? pointsForPlace(r.place, pointsSchedule) : null;
         results[personId] = { ...r, points };
       }
       return { ...g, results };

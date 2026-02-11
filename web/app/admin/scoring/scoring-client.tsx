@@ -17,11 +17,14 @@ export default function AdminScoringClient() {
     onLoadDraft,
     onSaveDraft,
     onPublish,
-    addParticipant
+    addParticipant,
+    updateParticipantDisplayName,
+    deleteParticipant
   } = useScoring();
 
   const [newPersonId, setNewPersonId] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
+  const [flash, setFlash] = useState<string | null>(null);
 
   const participants = doc.participants;
 
@@ -41,7 +44,7 @@ export default function AdminScoringClient() {
 
       <div className="card" style={{ display: 'grid', gap: 10 }}>
         <label>
-          Event ID{' '}
+          Triathlon Name{' '}
           <input value={eventId} onChange={(e) => setEventId(e.target.value)} style={{ marginLeft: 8 }} />
         </label>
         <label>
@@ -54,11 +57,28 @@ export default function AdminScoringClient() {
           />
         </label>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={onNewDoc}>New draft</button>
-          <button onClick={onLoadDraft}>Load draft</button>
-          <button onClick={onSaveDraft}>Save draft</button>
-          <button onClick={onPublish}>Publish</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={onNewDoc}>New TRI</button>
+          <button onClick={onLoadDraft}>Load TRI</button>
+          <button
+            onClick={() => {
+              onSaveDraft();
+              setFlash('Saved');
+              setTimeout(() => setFlash(null), 2500);
+            }}
+          >
+            Save TRI
+          </button>
+          <button
+            onClick={() => {
+              onPublish();
+              setFlash('Published');
+              setTimeout(() => setFlash(null), 2500);
+            }}
+          >
+            Publish
+          </button>
+          {flash && <span style={{ fontSize: 12, color: '#1b5e20' }}>{flash}</span>}
         </div>
 
         <div style={{ fontSize: 12, opacity: 0.85 }}>
@@ -92,17 +112,34 @@ export default function AdminScoringClient() {
           <table className="table">
             <thead>
               <tr>
+                <th style={{ width: 60 }}>#</th>
                 <th>personId</th>
                 <th>displayName</th>
+                <th style={{ width: 110 }} />
               </tr>
             </thead>
             <tbody>
-              {participants.map((p) => (
+              {participants.map((p, idx) => (
                 <tr key={p.personId}>
+                  <td>{idx + 1}</td>
                   <td>
                     <code>{p.personId}</code>
                   </td>
-                  <td>{p.displayName}</td>
+                  <td>
+                    <input
+                      value={p.displayName}
+                      onChange={(e) => updateParticipantDisplayName(p.personId, e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete competitor ${p.displayName} (${p.personId})?`)) deleteParticipant(p.personId);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -139,12 +176,14 @@ export default function AdminScoringClient() {
         </table>
       </div>
 
-      <h3 style={{ marginTop: 18 }}>Raw JSON (current doc)</h3>
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
-          {JSON.stringify(doc, null, 2)}
-        </pre>
-      </div>
+      <details style={{ marginTop: 18 }}>
+        <summary>Raw JSON (current doc)</summary>
+        <div className="card" style={{ overflowX: 'auto', marginTop: 8 }}>
+          <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
+            {JSON.stringify(doc, null, 2)}
+          </pre>
+        </div>
+      </details>
     </div>
   );
 }

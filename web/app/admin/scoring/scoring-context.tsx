@@ -58,6 +58,8 @@ type ScoringCtx = {
   onPublish: () => void;
 
   addParticipant: (p: Participant) => void;
+  updateParticipantDisplayName: (personId: string, displayName: string) => void;
+  deleteParticipant: (personId: string) => void;
 
   setRaw: (gameId: string, personId: string, raw: number | null) => void;
   setPlace: (gameId: string, personId: string, place: number | null) => void;
@@ -140,6 +142,42 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(next);
   }
 
+  function updateParticipantDisplayName(personId: string, displayName: string) {
+    const participants = doc.participants.map((p) => (p.personId === personId ? { ...p, displayName } : p));
+    setDoc({ ...doc, participants });
+  }
+
+  function deleteParticipant(personId: string) {
+    const participants = doc.participants.filter((p) => p.personId !== personId);
+
+    const subEvents = doc.subEvents.map((se) => {
+      const games = se.games.map((g) => {
+        const { [personId]: _, ...rest } = g.results;
+        return { ...g, results: rest };
+      }) as typeof se.games;
+      return { ...se, games };
+    }) as ScoringDocumentV1['subEvents'];
+
+    const poolMatches = doc.poolMatches.filter(
+      (m) => m.a !== personId && m.b !== personId && m.winner8Ball !== personId && m.winner9Ball !== personId
+    );
+
+    const eventMeta =
+      doc.eventMeta == null
+        ? null
+        : {
+            ...doc.eventMeta,
+            competitorOrder: doc.eventMeta.competitorOrder.filter((pid) => pid !== personId)
+          };
+
+    const next = recomputeDocumentDerivedFields({
+      doc: { ...doc, participants, subEvents, poolMatches, eventMeta },
+      pointsSchedule: DEFAULT_POINTS_SCHEDULE
+    });
+
+    setDoc(next);
+  }
+
   function setRaw(gameId: string, personId: string, raw: number | null) {
     const subEvents = doc.subEvents.map((se) => {
       const games = se.games.map((g) => {
@@ -191,6 +229,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         onSaveDraft,
         onPublish,
         addParticipant,
+        updateParticipantDisplayName,
+        deleteParticipant,
         setRaw,
         setPlace
       }}
