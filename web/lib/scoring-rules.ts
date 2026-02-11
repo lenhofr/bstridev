@@ -2,6 +2,7 @@ import type {
   Game,
   GameId,
   GameResult,
+  PersonId,
   ScoringDocumentV1,
   SubEventId,
   Totals,
@@ -102,7 +103,83 @@ export function computeBowlingGameFromRaw(params: {
 
 export function computePoolRunOfficialRawFromAttempts(attempts: number[] | null): number | null {
   if (!attempts || attempts.length === 0) return null;
-  return Math.max(...attempts);
+  const a1 = attempts[0] ?? 0;
+  const a2 = attempts[1] ?? 0;
+  const mx = Math.max(a1, a2);
+  return mx > 0 ? mx : null;
+}
+
+function computePoolRunTieBreakRawFromAttempts(attempts: number[] | null): number | null {
+  if (!attempts || attempts.length < 3) return null;
+  const v = attempts[2] ?? 0;
+  return v > 0 ? v : null;
+}
+
+function computePoolRunPlacesFromAttempts(game: Game): {
+  places: Record<PersonId, number | null>;
+  needsManual: Set<PersonId>;
+} {
+  const people = Object.entries(game.results)
+    .map(([personId, r]) => {
+      const raw = r.raw;
+      const tieBreakRaw = computePoolRunTieBreakRawFromAttempts(r.attempts);
+      return { personId, raw, tieBreakRaw };
+    })
+    .filter((x) => typeof x.raw === 'number') as Array<{ personId: PersonId; raw: number; tieBreakRaw: number | null }>;
+
+  const groups = new Map<number, Array<{ personId: PersonId; tieBreakRaw: number | null }>>();
+  for (const p of people) {
+    groups.set(p.raw, [...(groups.get(p.raw) ?? []), { personId: p.personId, tieBreakRaw: p.tieBreakRaw }]);
+  }
+
+  const places: Record<PersonId, number | null> = {};
+  const needsManual = new Set<PersonId>();
+
+  const rawVals = [...groups.keys()].sort((a, b) => b - a);
+  let nextPlace = 1;
+
+  for (const raw of rawVals) {
+    const group = groups.get(raw) ?? [];
+
+    if (group.length === 1) {
+      places[group[0]!.personId] = nextPlace;
+      nextPlace += 1;
+      continue;
+    }
+
+    // Extra runs only break ties *within* the tied group. They cannot surpass higher base raw.
+    const anyMissingExtra = group.some((x) => x.tieBreakRaw == null);
+    if (anyMissingExtra) {
+      for (const x of group) {
+        places[x.personId] = null;
+        needsManual.add(x.personId);
+      }
+      nextPlace += group.length;
+      continue;
+    }
+
+    const byExtra = new Map<number, PersonId[]>();
+    for (const x of group) {
+      const v = x.tieBreakRaw as number;
+      byExtra.set(v, [...(byExtra.get(v) ?? []), x.personId]);
+    }
+
+    const extraVals = [...byExtra.keys()].sort((a, b) => b - a);
+    for (const extra of extraVals) {
+      const sub = byExtra.get(extra) ?? [];
+      if (sub.length === 1) {
+        places[sub[0]!] = nextPlace;
+      } else {
+        for (const pid of sub) {
+          places[pid] = null;
+          needsManual.add(pid);
+        }
+      }
+      nextPlace += sub.length;
+    }
+  }
+
+  return { places, needsManual };
 }
 
 export function ensurePoolRunRawFromAttempts(game: Game): Game {
@@ -210,18 +287,23 @@ export function recomputeDocumentDerivedFields(params: {
           rawCounts.set(r.raw, (rawCounts.get(r.raw) ?? 0) + 1);
         }
 
-        const places = computePlacesFromRawDescending({
-          byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
-        });
+        const poolRun = withRaw.gameId === 'pool-3' ? computePoolRunPlacesFromAttempts(withRaw) : null;
+
+        const places =
+          poolRun?.places ??
+          computePlacesFromRawDescending({
+            byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
+          });
 
         const results: Game['results'] = { ...withRaw.results };
 
         const nextPlaces: Record<string, number | null> = {};
         for (const [personId, prev] of Object.entries(results)) {
           const raw = prev.raw;
-          const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
+          const needsManual =
+            poolRun?.needsManual.has(personId) ?? (typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1);
           const computedPlace = places[personId] ?? null;
-          nextPlaces[personId] = raw == null ? null : isTie ? (prev.place ?? null) : computedPlace;
+          nextPlaces[personId] = raw == null ? null : needsManual ? (prev.place ?? null) : computedPlace;
         }
 
         const placeCounts = new Map<number, number>();

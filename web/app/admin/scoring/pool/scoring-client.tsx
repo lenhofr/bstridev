@@ -367,21 +367,17 @@ export default function PoolScoringClient() {
 
                   function updateAttempt(personId: string, idx: number, val: number | null) {
                     const r = gameRun.results[personId] ?? emptyGameResult();
-                    const prev = r.attempts ?? [];
-                    const next = [...prev];
-                    while (next.length <= idx) next.push(0);
-                    if (val == null) {
-                      next[idx] = 0;
-                    } else {
-                      next[idx] = val;
-                    }
-                    const cleaned = next.filter((n) => typeof n === 'number' && n > 0);
-                    setAttempts(gameRun.gameId, personId, cleaned.length > 0 ? cleaned : null);
+                    const prev = r.attempts ?? [0, 0, 0];
+                    const next = [prev[0] ?? 0, prev[1] ?? 0, prev[2] ?? 0];
+                    next[idx] = val == null ? 0 : val;
+
+                    const any = next.some((n) => typeof n === 'number' && n > 0);
+                    setAttempts(gameRun.gameId, personId, any ? next : null);
                   }
 
                   return participants.map((p) => {
                     const r = gameRun.results[p.personId] ?? emptyGameResult();
-                    const attempts = r.attempts ?? [];
+                    const attempts = r.attempts ?? [0, 0, 0];
                     const raw = r.raw;
                     const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
 
@@ -391,27 +387,28 @@ export default function PoolScoringClient() {
                         <td>
                           <input
                             type="number"
-                            value={attempts[0] ?? ''}
+                            value={attempts[0] ? attempts[0] : ''}
                             onChange={(e) => updateAttempt(p.personId, 0, e.target.value === '' ? null : Number(e.target.value))}
                           />
                         </td>
                         <td>
                           <input
                             type="number"
-                            value={attempts[1] ?? ''}
+                            value={attempts[1] ? attempts[1] : ''}
                             onChange={(e) => updateAttempt(p.personId, 1, e.target.value === '' ? null : Number(e.target.value))}
                           />
                         </td>
                         <td>
                           <input
                             type="number"
-                            value={attempts[2] ?? ''}
+                            value={attempts[2] ? attempts[2] : ''}
+                            disabled={!isTie}
                             onChange={(e) => updateAttempt(p.personId, 2, e.target.value === '' ? null : Number(e.target.value))}
                           />
                         </td>
                         <td>{raw ?? '-'}</td>
                         <td>
-                          {isTie ? (
+                          {isTie && r.points == null ? (
                             <input
                               type="number"
                               value={r.place ?? ''}
