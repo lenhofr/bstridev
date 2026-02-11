@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { EventMeta, Participant, PoolMatchResult, ScoringDocumentV1 } from '../../../lib/scoring-model';
-import { createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
+import { CANONICAL_GAME_IDS, createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
 import { apiGetDraft, apiPublish, apiPutDraft } from '../../../lib/scoring-api';
 import { getAccessToken } from '../../../lib/cognito-auth';
 import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
@@ -73,6 +73,7 @@ type ScoringCtx = {
   setRaw: (gameId: string, personId: string, raw: number | null) => void;
   setPlace: (gameId: string, personId: string, place: number | null) => void;
   setAttempts: (gameId: string, personId: string, attempts: number[] | null) => void;
+  setGameFinalized: (gameId: string, finalized: boolean) => void;
 };
 
 const Ctx = createContext<ScoringCtx | null>(null);
@@ -326,6 +327,22 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(next);
   }
 
+  function setGameFinalized(gameId: string, finalized: boolean) {
+    setDoc((prev) => {
+      const allGameIds = Object.values(CANONICAL_GAME_IDS).flat();
+      const base = Object.prototype.hasOwnProperty.call(prev, 'finalizedGames')
+        ? (prev.finalizedGames ?? {})
+        : (Object.fromEntries(allGameIds.map((id) => [id, true])) as Record<string, boolean>);
+
+      const finalizedGames = { ...base, [gameId]: finalized };
+
+      return recomputeDocumentDerivedFields({
+        doc: { ...prev, finalizedGames },
+        pointsSchedule: DEFAULT_POINTS_SCHEDULE
+      });
+    });
+  }
+
   function importDoc(nextDoc: ScoringDocumentV1) {
     const nextDraftKey = `${LS_DRAFT_PREFIX}${nextDoc.eventId}`;
     const next = recomputeDocumentDerivedFields({ doc: nextDoc, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
@@ -359,7 +376,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         removePoolMatch,
         setRaw,
         setPlace,
-        setAttempts
+        setAttempts,
+        setGameFinalized
       }}
     >
       {props.children}

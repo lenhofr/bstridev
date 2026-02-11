@@ -348,6 +348,12 @@ export function computeTotalsFromPoints(doc: ScoringDocumentV1): Totals {
   return { byPerson };
 }
 
+function isGameFinalized(doc: ScoringDocumentV1, gameId: GameId): boolean {
+  // Legacy docs (no finalizedGames field) behave like today: all games are finalized.
+  if (!Object.prototype.hasOwnProperty.call(doc, 'finalizedGames')) return true;
+  return Boolean(doc.finalizedGames?.[gameId]);
+}
+
 export function recomputeDocumentDerivedFields(params: {
   doc: ScoringDocumentV1;
   pointsSchedule?: PointsSchedule;
@@ -431,6 +437,12 @@ export function recomputeDocumentDerivedFields(params: {
           results[personId] = { ...prev, place, points };
         }
 
+        if (!isGameFinalized(params.doc, g.gameId)) {
+          for (const [personId, prev] of Object.entries(results)) {
+            results[personId] = { ...prev, points: null };
+          }
+        }
+
         return { ...withRaw, results };
       }
 
@@ -448,6 +460,13 @@ export function recomputeDocumentDerivedFields(params: {
         const points = !isDup && r.place != null ? pointsForPlace(r.place, pointsSchedule) : null;
         results[personId] = { ...r, points };
       }
+
+      if (!isGameFinalized(params.doc, g.gameId)) {
+        for (const [personId, prev] of Object.entries(results)) {
+          results[personId] = { ...prev, points: null };
+        }
+      }
+
       return { ...g, results };
     }) as typeof se.games;
 

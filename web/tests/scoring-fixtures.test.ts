@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { ScoringDocumentV1 } from '../lib/scoring-model';
-import { OPTIONAL_4TH_5TH_POINTS, recomputeDocumentDerivedFields } from '../lib/scoring-rules';
+import { OPTIONAL_4TH_5TH_POINTS, emptyGameResult, recomputeDocumentDerivedFields } from '../lib/scoring-rules';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,6 +149,52 @@ test('pool: byes count as wins (but still no places/points until all scheduled m
     assert.equal(game9.results[pid].place, null);
     assert.equal(game9.results[pid].points, null);
   }
+});
+
+test('finalize: points are only awarded once a game is marked complete', async () => {
+  const { createEmptyScoringDocumentV1 } = await import('../lib/scoring-model');
+
+  const doc = createEmptyScoringDocumentV1({
+    eventId: 'fixture-finalize',
+    year: 2026,
+    status: 'draft',
+    participants: [
+      { personId: 'a', displayName: 'Alpha' },
+      { personId: 'b', displayName: 'Bravo' },
+      { personId: 'c', displayName: 'Charlie' }
+    ]
+  });
+
+  // Enter bowling raw scores
+  const bowling = doc.subEvents.find((x) => x.subEventId === 'bowling')!;
+  const g1 = bowling.games.find((g) => g.gameId === 'bowling-1')!;
+  g1.results = {
+    a: { ...emptyGameResult(), raw: 200 },
+    b: { ...emptyGameResult(), raw: 150 },
+    c: { ...emptyGameResult(), raw: 100 }
+  };
+
+  const next1 = recomputeDocumentDerivedFields({ doc, pointsSchedule: POINTS_SCHEDULE });
+  const b1 = getGame(next1, 'bowling-1');
+
+  assert.equal(b1.results.a.place, 1);
+  assert.equal(b1.results.b.place, 2);
+  assert.equal(b1.results.c.place, 3);
+
+  // Not finalized => no points yet
+  assert.equal(b1.results.a.points, null);
+  assert.equal(b1.results.b.points, null);
+  assert.equal(b1.results.c.points, null);
+
+  const next2 = recomputeDocumentDerivedFields({
+    doc: { ...doc, finalizedGames: { 'bowling-1': true } },
+    pointsSchedule: POINTS_SCHEDULE
+  });
+  const b1f = getGame(next2, 'bowling-1');
+
+  assert.equal(b1f.results.a.points, 3);
+  assert.equal(b1f.results.b.points, 2);
+  assert.equal(b1f.results.c.points, 1);
 });
 
 test('fixture: duplicate places in darts yield null points for duplicated entries', async () => {
