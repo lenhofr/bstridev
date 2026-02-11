@@ -196,6 +196,7 @@ export default function PublishedScoringClient() {
   const [doc, setDoc] = useState<ScoringDocumentV1 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
+  const [totalsSort, setTotalsSort] = useState<SortSpec>({ key: 'triathlon', dir: 'desc' });
 
   function onLoad() {
     const loaded = loadPublishedDoc(publishedKey);
@@ -253,17 +254,52 @@ export default function PublishedScoringClient() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Competitor</th>
-                  <th style={{ width: 90 }}>Bowling</th>
-                  <th style={{ width: 90 }}>Pool</th>
-                  <th style={{ width: 90 }}>Darts</th>
-                  <th style={{ width: 110 }}>Triathlon</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => setTotalsSort(nextSort(totalsSort, 'competitor', 'asc'))}>
+                    Competitor{sortMark(totalsSort.key === 'competitor', totalsSort.dir)}
+                  </th>
+                  <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setTotalsSort(nextSort(totalsSort, 'bowling', 'desc'))}>
+                    Bowling{sortMark(totalsSort.key === 'bowling', totalsSort.dir)}
+                  </th>
+                  <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setTotalsSort(nextSort(totalsSort, 'pool', 'desc'))}>
+                    Pool{sortMark(totalsSort.key === 'pool', totalsSort.dir)}
+                  </th>
+                  <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setTotalsSort(nextSort(totalsSort, 'darts', 'desc'))}>
+                    Darts{sortMark(totalsSort.key === 'darts', totalsSort.dir)}
+                  </th>
+                  <th style={{ width: 110, cursor: 'pointer' }} onClick={() => setTotalsSort(nextSort(totalsSort, 'triathlon', 'desc'))}>
+                    Triathlon{sortMark(totalsSort.key === 'triathlon', totalsSort.dir)}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {[...doc.participants]
-                  .map((p) => ({ p, t: doc.totals.byPerson[p.personId] }))
-                  .sort((a, b) => (b.t?.triathlon ?? 0) - (a.t?.triathlon ?? 0))
+                  .map((p, idx) => ({
+                    p,
+                    idx,
+                    t: doc.totals.byPerson[p.personId]
+                  }))
+                  .map((row, stableIdx) => ({ ...row, stableIdx }))
+                  .sort((a, b) => {
+                    const bowlingA = a.t?.bySubEvent.bowling ?? 0;
+                    const bowlingB = b.t?.bySubEvent.bowling ?? 0;
+                    const poolA = a.t?.bySubEvent.pool ?? 0;
+                    const poolB = b.t?.bySubEvent.pool ?? 0;
+                    const dartsA = a.t?.bySubEvent.darts ?? 0;
+                    const dartsB = b.t?.bySubEvent.darts ?? 0;
+                    const triA = a.t?.triathlon ?? 0;
+                    const triB = b.t?.triathlon ?? 0;
+
+                    if (totalsSort.key === 'competitor')
+                      return cmpStr(a.p.displayName, b.p.displayName, totalsSort.dir) || a.stableIdx - b.stableIdx;
+                    if (totalsSort.key === 'bowling')
+                      return cmpNum(bowlingA, bowlingB, totalsSort.dir) || a.stableIdx - b.stableIdx;
+                    if (totalsSort.key === 'pool') return cmpNum(poolA, poolB, totalsSort.dir) || a.stableIdx - b.stableIdx;
+                    if (totalsSort.key === 'darts')
+                      return cmpNum(dartsA, dartsB, totalsSort.dir) || a.stableIdx - b.stableIdx;
+                    if (totalsSort.key === 'triathlon')
+                      return cmpNum(triA, triB, totalsSort.dir) || a.stableIdx - b.stableIdx;
+                    return a.stableIdx - b.stableIdx;
+                  })
                   .map(({ p, t }) => (
                     <tr key={p.personId}>
                       <td>{p.displayName}</td>
