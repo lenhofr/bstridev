@@ -575,7 +575,7 @@ export default function PoolScoringClient() {
                     Tiebreaker{sortMark(sortRun.key === 'tb', sortRun.dir)}
                   </th>
                   <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'raw', 'desc'))}>
-                    Raw{sortMark(sortRun.key === 'raw', sortRun.dir)}
+                    BestRun{sortMark(sortRun.key === 'raw', sortRun.dir)}
                   </th>
                   <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'place', 'asc'))}>
                     Place{sortMark(sortRun.key === 'place', sortRun.dir)}

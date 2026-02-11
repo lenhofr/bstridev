@@ -103,7 +103,7 @@ export default function BowlingScoringClient() {
                       Competitor{sortMark(sort.key === 'competitor', sort.dir)}
                     </th>
                     <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'raw') }))}>
-                      Raw{sortMark(sort.key === 'raw', sort.dir)}
+                      Pins{sortMark(sort.key === 'raw', sort.dir)}
                     </th>
                     <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'place') }))}>
                       Place{sortMark(sort.key === 'place', sort.dir)}
