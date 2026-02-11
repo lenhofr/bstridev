@@ -87,8 +87,9 @@ export default function AdminScoringClient() {
     const personId = newPersonId.trim();
     const displayName = newDisplayName.trim() || personId;
     if (!personId) return;
-    if (participants.some((p) => p.personId === personId)) {
-      setFlashMsg(`Competitor already exists: ${personId}`);
+    const existing = participants.find((p) => p.personId.toLowerCase() === personId.toLowerCase());
+    if (existing) {
+      setFlashMsg(`Competitor already exists: ${existing.personId}`);
       return;
     }
 

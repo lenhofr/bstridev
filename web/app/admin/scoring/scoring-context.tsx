@@ -142,6 +142,7 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   }
 
   function addParticipant(p: Participant) {
+    if (doc.participants.some((x) => x.personId.toLowerCase() === p.personId.toLowerCase())) return;
     const participants = [...doc.participants, p];
 
     const eventMeta =
