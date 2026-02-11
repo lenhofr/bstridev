@@ -3,6 +3,15 @@
 import { emptyGameResult } from '../../../../lib/scoring-rules';
 import { useScoring } from '../scoring-context';
 
+function placeStyle(place: number | null) {
+  return typeof place === 'number' && place >= 1 && place <= 5 ? { fontWeight: 700 } : undefined;
+}
+
+function renderPlace(place: number | null) {
+  if (place == null) return '-';
+  return place >= 1 && place <= 5 ? <b>{place}</b> : place;
+}
+
 export default function BowlingScoringClient() {
   const { doc, setRaw, setPlace } = useScoring();
   const participants = doc.participants;
@@ -71,10 +80,10 @@ export default function BowlingScoringClient() {
                               onChange={(e) =>
                                 setPlace(g.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                               }
-                              style={isDup ? { border: '2px solid #b00020' } : undefined}
+                              style={{ ...placeStyle(r.place), ...(isDup ? { border: '2px solid #b00020' } : {}) }}
                             />
                           ) : (
-                            r.place ?? '-'
+                            renderPlace(r.place)
                           )}
                         </td>
                         <td>{r.points ?? '-'}</td>

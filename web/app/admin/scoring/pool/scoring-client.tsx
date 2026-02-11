@@ -20,6 +20,15 @@ function matchKey(params: { round: number; a: string; b: string }) {
   return `${params.round}:${params.a}:${params.b}`;
 }
 
+function placeStyle(place: number | null) {
+  return typeof place === 'number' && place >= 1 && place <= 5 ? { fontWeight: 700 } : undefined;
+}
+
+function renderPlace(place: number | null) {
+  if (place == null) return '-';
+  return place >= 1 && place <= 5 ? <b>{place}</b> : place;
+}
+
 export default function PoolScoringClient() {
   const { doc, setEventMeta, setPoolMatches, upsertPoolMatch, removePoolMatch, setPlace, setAttempts } = useScoring();
   const participants = doc.participants;
@@ -268,12 +277,13 @@ export default function PoolScoringClient() {
                           <input
                             type="number"
                             value={r.place ?? ''}
+                            style={placeStyle(r.place)}
                             onChange={(e) =>
                               setPlace(game8.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                             }
                           />
                         ) : (
-                          r.place ?? '-'
+                          renderPlace(r.place)
                         )}
                       </td>
                       <td>{r.points ?? '-'}</td>
@@ -319,12 +329,13 @@ export default function PoolScoringClient() {
                           <input
                             type="number"
                             value={r.place ?? ''}
+                            style={placeStyle(r.place)}
                             onChange={(e) =>
                               setPlace(game9.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                             }
                           />
                         ) : (
-                          r.place ?? '-'
+                          renderPlace(r.place)
                         )}
                       </td>
                       <td>{r.points ?? '-'}</td>
@@ -412,12 +423,13 @@ export default function PoolScoringClient() {
                             <input
                               type="number"
                               value={r.place ?? ''}
+                              style={placeStyle(r.place)}
                               onChange={(e) =>
                                 setPlace(gameRun.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                               }
                             />
                           ) : (
-                            r.place ?? '-'
+                            renderPlace(r.place)
                           )}
                         </td>
                         <td>{r.points ?? '-'}</td>

@@ -3,6 +3,10 @@
 import { emptyGameResult } from '../../../../lib/scoring-rules';
 import { useScoring } from '../scoring-context';
 
+function placeStyle(place: number | null) {
+  return typeof place === 'number' && place >= 1 && place <= 5 ? { fontWeight: 700 } : undefined;
+}
+
 export default function DartsScoringClient() {
   const { doc, setPlace } = useScoring();
   const participants = doc.participants;
@@ -59,7 +63,7 @@ export default function DartsScoringClient() {
                             onChange={(e) =>
                               setPlace(g.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                             }
-                            style={isDup ? { border: '2px solid #b00020' } : undefined}
+                            style={{ ...placeStyle(r.place), ...(isDup ? { border: '2px solid #b00020' } : {}) }}
                           />
                         </td>
                         <td>{r.points ?? '-'}</td>
