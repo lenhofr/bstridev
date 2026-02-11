@@ -103,12 +103,51 @@ test('pool: when schedule exists but not all matches are entered, do not award p
   const next = recomputeDocumentDerivedFields({ doc, pointsSchedule: POINTS_SCHEDULE });
   const game8 = getGame(next, 'pool-1');
 
-  assert.equal(game8.results.b.raw, 1);
-  assert.equal(game8.results.c.raw, 0);
+  // Bye counts as a win, so b has: 1 bye + 1 recorded win.
+  assert.equal(game8.results.b.raw, 2);
+  // c has: 1 bye + 0 recorded wins.
+  assert.equal(game8.results.c.raw, 1);
 
   for (const pid of ['a', 'b', 'c'] as const) {
     assert.equal(game8.results[pid].place, null);
     assert.equal(game8.results[pid].points, null);
+  }
+});
+
+test('pool: byes count as wins (but still no places/points until all scheduled matches are entered)', async () => {
+  const { createEmptyScoringDocumentV1 } = await import('../lib/scoring-model');
+  const { generateRoundRobinSchedule } = await import('../lib/pool-schedule');
+
+  const doc = createEmptyScoringDocumentV1({
+    eventId: 'fixture-bye-wins',
+    year: 2026,
+    status: 'draft',
+    participants: [
+      { personId: 'a', displayName: 'Alpha' },
+      { personId: 'b', displayName: 'Bravo' },
+      { personId: 'c', displayName: 'Charlie' }
+    ],
+    eventMeta: {
+      competitorOrder: ['a', 'b', 'c'],
+      poolTables: [1],
+      poolSchedule: generateRoundRobinSchedule({ competitorOrder: ['a', 'b', 'c'], poolTables: [1] })
+    }
+  });
+
+  const next = recomputeDocumentDerivedFields({ doc, pointsSchedule: POINTS_SCHEDULE });
+  const game8 = getGame(next, 'pool-1');
+  const game9 = getGame(next, 'pool-2');
+
+  // Each competitor should have exactly one bye in a 3-person round robin.
+  for (const pid of ['a', 'b', 'c'] as const) {
+    assert.equal(game8.results[pid].raw, 1);
+    assert.equal(game9.results[pid].raw, 1);
+
+    // No actual matches have winners yet => pool is "in progress" => no places/points.
+    assert.equal(game8.results[pid].place, null);
+    assert.equal(game8.results[pid].points, null);
+    assert.equal(game9.results[pid].place, null);
+    assert.equal(game9.results[pid].points, null);
   }
 });
 
