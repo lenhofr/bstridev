@@ -3,6 +3,10 @@
 ### Requirement: Authenticated write API
 The system SHALL provide an API for writing scoring data that requires authenticated admin access.
 
+#### Scenario: Updater identity recorded
+- **WHEN** a caller writes scoring data with a valid admin token
+- **THEN** the persisted document SHALL record the admin identity (e.g., `updatedBy.userId` and optionally `updatedBy.displayName`)
+
 #### Scenario: Write rejected without token
 - **WHEN** a caller attempts to write scoring data without a valid admin token
 - **THEN** the API SHALL reject the request

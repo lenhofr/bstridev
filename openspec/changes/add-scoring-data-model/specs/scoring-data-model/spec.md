@@ -103,6 +103,19 @@ The system SHALL include derived point totals in the scoring document.
 - **WHEN** the public site renders overall triathlon standings
 - **THEN** it SHALL be able to use the stored overall triathlon totals (points) to rank participants
 
+### Requirement: Audit metadata
+The system SHALL support recording the identity of the admin who last updated and published a scoring document.
+
+#### Scenario: Record last updated by
+- **WHEN** an admin saves a draft scoring document
+- **THEN** the document SHALL include the admin’s stable user identifier as `updatedBy.userId`
+- **AND** MAY include a human-friendly name as `updatedBy.displayName`
+
+#### Scenario: Record published by
+- **WHEN** an admin publishes a scoring document
+- **THEN** the published document SHALL include the admin’s stable user identifier as `publishedBy.userId`
+- **AND** MAY include a human-friendly name as `publishedBy.displayName`
+
 ### Requirement: Draft vs published states
 The system SHALL support draft and published scoring documents per event.
 

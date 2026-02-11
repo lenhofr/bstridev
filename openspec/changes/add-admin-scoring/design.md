@@ -52,5 +52,5 @@ Recommendation: store raw scores *and* the derived points (computed in the admin
 - Phase 2: Wire the public results pages to consume published results (optionally fall back to hard-coded content if no published data exists).
 
 ## Open Questions
-- Do we need per-sub-event admins (e.g., bowling scorer vs full admin)?
-- Do we need audit history (who changed what/when)?
+- Do we need audit history beyond “last updated by” / “published by” metadata?
+  - v1: record the admin’s id/name on the scoring document, but do not maintain a full edit history.

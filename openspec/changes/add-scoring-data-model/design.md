@@ -15,7 +15,9 @@ A single JSON document per event per state (`draft`, `published`).
 - `year`: number (e.g., 2026)
 - `status`: `draft|published`
 - `updatedAt`: ISO timestamp
+- `updatedBy`: `{ userId: string, displayName: string | null }` | null
 - `publishedAt`: ISO timestamp | null
+- `publishedBy`: `{ userId: string, displayName: string | null }` | null
 - `eventMeta`: object | null (event-level metadata used for schedule generation/display)
 - `participants`: list of individuals
 - `subEvents`: fixed list in canonical order: `bowling`, `pool`, `darts`
@@ -113,7 +115,9 @@ This example shows the fixed 3×3 game structure plus a pool round-robin schedul
   "year": 2026,
   "status": "published",
   "updatedAt": "2026-02-10T00:00:00.000Z",
+  "updatedBy": { "userId": "cognito:123", "displayName": "Rob (admin)" },
   "publishedAt": "2026-02-10T00:00:00.000Z",
+  "publishedBy": { "userId": "cognito:123", "displayName": "Rob (admin)" },
   "eventMeta": {
     "competitorOrder": ["rob", "alex", "sam", "pat", "taylor"],
     "poolTables": [13, 14],
