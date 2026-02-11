@@ -68,3 +68,15 @@ variable "create_route53_record" {
   description = "When true, create Route53 alias records for custom_domain_name (and alternates) in route53_zone_id."
   default     = false
 }
+
+variable "admin_oauth_callback_urls" {
+  type        = list(string)
+  description = "Extra OAuth callback URLs for Cognito Hosted UI (in addition to inferred CloudFront/custom domains)."
+  default     = ["http://localhost:3005/admin/scoring"]
+}
+
+variable "admin_oauth_logout_urls" {
+  type        = list(string)
+  description = "Extra OAuth logout URLs for Cognito Hosted UI (in addition to inferred CloudFront/custom domains)."
+  default     = ["http://localhost:3005/admin/scoring"]
+}
