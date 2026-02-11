@@ -207,9 +207,6 @@ function ensurePoolMatchWinsRaw(params: {
     if (wins[winner] != null) wins[winner] += 1;
   }
 
-  for (const r of params.doc.eventMeta?.poolSchedule?.rounds ?? []) {
-    if (r.bye && wins[r.bye] != null) wins[r.bye] += 1;
-  }
 
   const results: Game['results'] = { ...params.game.results };
   for (const p of params.doc.participants) {
@@ -380,22 +377,39 @@ export function recomputeDocumentDerivedFields(params: {
               ? computePoolMatchWinPlacesFromHeadToHead({ doc: params.doc, game: withRaw, winnerKey: 'winner9Ball' })
               : null;
 
-        const places =
-          poolRun?.places ??
-          poolWins?.places ??
-          computePlacesFromRawDescending({
-            byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
-          });
+        const poolWinnerKey =
+          withRaw.gameId === 'pool-1' ? ('winner8Ball' as const) : withRaw.gameId === 'pool-2' ? ('winner9Ball' as const) : null;
+        const scheduledMatchCount = (params.doc.eventMeta?.poolSchedule?.rounds ?? []).reduce((sum, r) => sum + r.matches.length, 0);
+        const recordedMatchCount = poolWinnerKey
+          ? params.doc.poolMatches.filter((m) => m[poolWinnerKey] != null).length
+          : 0;
+        const poolInProgress =
+          poolWinnerKey != null &&
+          scheduledMatchCount > 0 &&
+          recordedMatchCount < scheduledMatchCount;
+
+        const places = poolInProgress
+          ? (Object.fromEntries(Object.keys(withRaw.results).map((pid) => [pid, null])) as Record<PersonId, number | null>)
+          : poolRun?.places ??
+            poolWins?.places ??
+            computePlacesFromRawDescending({
+              byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
+            });
 
         const results: Game['results'] = { ...withRaw.results };
 
         const nextPlaces: Record<string, number | null> = {};
         for (const [personId, prev] of Object.entries(results)) {
           const raw = prev.raw;
-          const needsManual =
+          const manualFromRuns =
             poolRun?.needsManual.has(personId) ??
             poolWins?.needsManual.has(personId) ??
-            (typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1);
+            false;
+          const isGenericRawRank = poolRun == null && poolWins == null;
+          const needsManual =
+            poolInProgress ||
+            manualFromRuns ||
+            (isGenericRawRank && typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1);
           const computedPlace = places[personId] ?? null;
           nextPlaces[personId] = raw == null ? null : needsManual ? (prev.place ?? null) : computedPlace;
         }
