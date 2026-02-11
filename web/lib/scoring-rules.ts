@@ -170,10 +170,29 @@ export function recomputeDocumentDerivedFields(params: {
       // Raw-based ranking games
       if (g.gameId.startsWith('bowling-') || g.gameId.startsWith('pool-')) {
         const withRaw = g.gameId === 'pool-3' ? ensurePoolRunRawFromAttempts(g) : g;
+
+        const rawCounts = new Map<number, number>();
+        for (const r of Object.values(withRaw.results)) {
+          if (typeof r.raw !== 'number') continue;
+          rawCounts.set(r.raw, (rawCounts.get(r.raw) ?? 0) + 1);
+        }
+
         const places = computePlacesFromRawDescending({
           byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
         });
-        return applyPlacesAndPointsToGame({ game: withRaw, places, pointsSchedule });
+
+        const results: Game['results'] = { ...withRaw.results };
+        for (const [personId, prev] of Object.entries(results)) {
+          const raw = prev.raw;
+          const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
+          const computedPlace = places[personId] ?? null;
+
+          const place = raw == null ? null : isTie ? (prev.place ?? null) : computedPlace;
+          const points = place != null ? pointsForPlace(place, pointsSchedule) : null;
+          results[personId] = { ...prev, place, points };
+        }
+
+        return { ...withRaw, results };
       }
 
       // Place-entered games (darts)
