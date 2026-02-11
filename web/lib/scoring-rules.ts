@@ -220,6 +220,91 @@ function ensurePoolMatchWinsRaw(params: {
   return { ...params.game, results };
 }
 
+function computePoolMatchWinPlacesFromHeadToHead(params: {
+  doc: ScoringDocumentV1;
+  game: Game;
+  winnerKey: 'winner8Ball' | 'winner9Ball';
+}): { places: Record<PersonId, number | null>; needsManual: Set<PersonId> } {
+  const entries = Object.entries(params.game.results)
+    .map(([personId, r]) => ({ personId: personId as PersonId, raw: r.raw }))
+    .filter((x) => typeof x.raw === 'number') as Array<{ personId: PersonId; raw: number }>;
+
+  entries.sort((a, b) => b.raw - a.raw);
+
+  const places: Record<PersonId, number | null> = Object.fromEntries(
+    Object.keys(params.game.results).map((pid) => [pid, null])
+  ) as Record<PersonId, number | null>;
+
+  const needsManual = new Set<PersonId>();
+
+  let nextPlace = 1;
+  for (let i = 0; i < entries.length; ) {
+    const wins = entries[i]!.raw;
+    const tied: PersonId[] = [entries[i]!.personId];
+    i++;
+    while (i < entries.length && entries[i]!.raw === wins) {
+      tied.push(entries[i]!.personId);
+      i++;
+    }
+
+    if (tied.length === 1) {
+      places[tied[0]!] = nextPlace;
+      nextPlace += 1;
+      continue;
+    }
+
+    // Break ties within the tied group using head-to-head results (mini-league wins).
+    const tiedSet = new Set(tied);
+
+    const expectedMatches = (tied.length * (tied.length - 1)) / 2;
+    const headToHeadMatches = params.doc.poolMatches.filter(
+      (m) => tiedSet.has(m.a) && tiedSet.has(m.b) && m[params.winnerKey] != null
+    );
+
+    // If we don't have all head-to-head match results yet, don't guess.
+    if (headToHeadMatches.length < expectedMatches) {
+      for (const pid of tied) {
+        places[pid] = null;
+        needsManual.add(pid);
+      }
+      nextPlace += tied.length;
+      continue;
+    }
+
+    const h2hWins: Record<PersonId, number> = Object.fromEntries(tied.map((pid) => [pid, 0])) as Record<PersonId, number>;
+    for (const m of headToHeadMatches) {
+      const winner = m[params.winnerKey];
+      if (h2hWins[winner] != null) h2hWins[winner] += 1;
+    }
+
+    const ordered = tied
+      .map((pid, stableIdx) => ({ pid, stableIdx, w: h2hWins[pid] ?? 0 }))
+      .sort((a, b) => b.w - a.w || a.stableIdx - b.stableIdx);
+
+    for (let j = 0; j < ordered.length; ) {
+      const w = ordered[j]!.w;
+      const group: PersonId[] = [ordered[j]!.pid];
+      j++;
+      while (j < ordered.length && ordered[j]!.w === w) {
+        group.push(ordered[j]!.pid);
+        j++;
+      }
+
+      if (group.length === 1) {
+        places[group[0]!] = nextPlace;
+      } else {
+        for (const pid of group) {
+          places[pid] = null;
+          needsManual.add(pid);
+        }
+      }
+      nextPlace += group.length;
+    }
+  }
+
+  return { places, needsManual };
+}
+
 export function validateTieBreak(tb: TieBreak | null): string[] {
   if (!tb) return [];
   const errors: string[] = [];
@@ -288,9 +373,16 @@ export function recomputeDocumentDerivedFields(params: {
         }
 
         const poolRun = withRaw.gameId === 'pool-3' ? computePoolRunPlacesFromAttempts(withRaw) : null;
+        const poolWins =
+          withRaw.gameId === 'pool-1'
+            ? computePoolMatchWinPlacesFromHeadToHead({ doc: params.doc, game: withRaw, winnerKey: 'winner8Ball' })
+            : withRaw.gameId === 'pool-2'
+              ? computePoolMatchWinPlacesFromHeadToHead({ doc: params.doc, game: withRaw, winnerKey: 'winner9Ball' })
+              : null;
 
         const places =
           poolRun?.places ??
+          poolWins?.places ??
           computePlacesFromRawDescending({
             byPerson: Object.fromEntries(Object.entries(withRaw.results).map(([k, v]) => [k, { raw: v.raw }]))
           });
@@ -301,7 +393,9 @@ export function recomputeDocumentDerivedFields(params: {
         for (const [personId, prev] of Object.entries(results)) {
           const raw = prev.raw;
           const needsManual =
-            poolRun?.needsManual.has(personId) ?? (typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1);
+            poolRun?.needsManual.has(personId) ??
+            poolWins?.needsManual.has(personId) ??
+            (typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1);
           const computedPlace = places[personId] ?? null;
           nextPlaces[personId] = raw == null ? null : needsManual ? (prev.place ?? null) : computedPlace;
         }

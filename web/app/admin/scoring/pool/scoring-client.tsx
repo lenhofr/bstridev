@@ -332,6 +332,23 @@ export default function PoolScoringClient() {
       {game8 && (
         <div className="card" style={{ marginTop: 8 }}>
           <h4 style={{ margin: '0 0 8px' }}>8-ball</h4>
+          {(() => {
+            const placeCounts = new Map<number, number>();
+            for (const p of participants) {
+              const r = game8.results[p.personId] ?? emptyGameResult();
+              if (typeof r.place !== 'number') continue;
+              placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
+            }
+            const dupPlaces = [...placeCounts.entries()]
+              .filter(([, n]) => n > 1)
+              .map(([pl]) => pl)
+              .sort((a, b) => a - b);
+            return dupPlaces.length > 0 ? (
+              <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>
+                Duplicate place(s): {dupPlaces.join(', ')}. Resolve and assign unique places.
+              </p>
+            ) : null;
+          })()}
           <table className="table">
             <thead>
               <tr>
@@ -359,10 +376,11 @@ export default function PoolScoringClient() {
                 });
 
                 const rawCounts = new Map<number, number>();
+                const placeCounts = new Map<number, number>();
                 for (const { r } of base) {
                   const raw = r.raw;
-                  if (typeof raw !== 'number') continue;
-                  rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                  if (typeof raw === 'number') rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                  if (typeof r.place === 'number') placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
                 }
 
                 const sorted = base
@@ -385,16 +403,17 @@ export default function PoolScoringClient() {
 
                 return sorted.map(({ p, r }) => {
                   const isTie = typeof r.raw === 'number' && (rawCounts.get(r.raw) ?? 0) > 1;
+                  const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
                   return (
                     <tr key={p.personId}>
                       <td>{p.displayName}</td>
                       <td>{r.raw ?? 0}</td>
                       <td>
-                        {isTie ? (
+                        {(isTie || isDup) && r.points == null ? (
                           <input
                             type="number"
                             value={r.place ?? ''}
-                            style={placeStyle(r.place)}
+                            style={{ ...placeStyle(r.place), ...(isDup ? { border: '2px solid #b00020' } : {}) }}
                             onChange={(e) =>
                               setPlace(game8.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                             }
@@ -416,6 +435,23 @@ export default function PoolScoringClient() {
       {game9 && (
         <div className="card" style={{ marginTop: 12 }}>
           <h4 style={{ margin: '0 0 8px' }}>9-ball</h4>
+          {(() => {
+            const placeCounts = new Map<number, number>();
+            for (const p of participants) {
+              const r = game9.results[p.personId] ?? emptyGameResult();
+              if (typeof r.place !== 'number') continue;
+              placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
+            }
+            const dupPlaces = [...placeCounts.entries()]
+              .filter(([, n]) => n > 1)
+              .map(([pl]) => pl)
+              .sort((a, b) => a - b);
+            return dupPlaces.length > 0 ? (
+              <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>
+                Duplicate place(s): {dupPlaces.join(', ')}. Resolve and assign unique places.
+              </p>
+            ) : null;
+          })()}
           <table className="table">
             <thead>
               <tr>
@@ -443,10 +479,11 @@ export default function PoolScoringClient() {
                 });
 
                 const rawCounts = new Map<number, number>();
+                const placeCounts = new Map<number, number>();
                 for (const { r } of base) {
                   const raw = r.raw;
-                  if (typeof raw !== 'number') continue;
-                  rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                  if (typeof raw === 'number') rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                  if (typeof r.place === 'number') placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
                 }
 
                 const sorted = base
@@ -469,16 +506,17 @@ export default function PoolScoringClient() {
 
                 return sorted.map(({ p, r }) => {
                   const isTie = typeof r.raw === 'number' && (rawCounts.get(r.raw) ?? 0) > 1;
+                  const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
                   return (
                     <tr key={p.personId}>
                       <td>{p.displayName}</td>
                       <td>{r.raw ?? 0}</td>
                       <td>
-                        {isTie ? (
+                        {(isTie || isDup) && r.points == null ? (
                           <input
                             type="number"
                             value={r.place ?? ''}
-                            style={placeStyle(r.place)}
+                            style={{ ...placeStyle(r.place), ...(isDup ? { border: '2px solid #b00020' } : {}) }}
                             onChange={(e) =>
                               setPlace(game9.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                             }
@@ -504,6 +542,23 @@ export default function PoolScoringClient() {
             Enter two attempts (and optionally a tiebreaker run). Official score is the max of Attempt 1/2.
           </p>
           <div className="card">
+            {(() => {
+              const placeCounts = new Map<number, number>();
+              for (const p of participants) {
+                const r = gameRun.results[p.personId] ?? emptyGameResult();
+                if (typeof r.place !== 'number') continue;
+                placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
+              }
+              const dupPlaces = [...placeCounts.entries()]
+                .filter(([, n]) => n > 1)
+                .map(([pl]) => pl)
+                .sort((a, b) => a - b);
+              return dupPlaces.length > 0 ? (
+                <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>
+                  Duplicate place(s): {dupPlaces.join(', ')}. Resolve and assign unique places.
+                </p>
+              ) : null;
+            })()}
             <table className="table">
               <thead>
                 <tr>
@@ -540,10 +595,11 @@ export default function PoolScoringClient() {
                   });
 
                   const rawCounts = new Map<number, number>();
+                  const placeCounts = new Map<number, number>();
                   for (const { r } of base) {
                     const raw = r.raw;
-                    if (typeof raw !== 'number') continue;
-                    rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                    if (typeof raw === 'number') rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
+                    if (typeof r.place === 'number') placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
                   }
 
                   function updateAttempt(personId: string, idx: number, val: number | null) {
@@ -589,6 +645,7 @@ export default function PoolScoringClient() {
                     const attempts = r.attempts ?? [0, 0, 0];
                     const raw = r.raw;
                     const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
+                    const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
 
                     return (
                       <tr key={p.personId}>
@@ -617,11 +674,11 @@ export default function PoolScoringClient() {
                         </td>
                         <td>{raw ?? '-'}</td>
                         <td>
-                          {isTie && r.points == null ? (
+                          {(isTie || isDup) && r.points == null ? (
                             <input
                               type="number"
                               value={r.place ?? ''}
-                              style={placeStyle(r.place)}
+                              style={{ ...placeStyle(r.place), ...(isDup ? { border: '2px solid #b00020' } : {}) }}
                               onChange={(e) =>
                                 setPlace(gameRun.gameId, p.personId, e.target.value === '' ? null : Number(e.target.value))
                               }
