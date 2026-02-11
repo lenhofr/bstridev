@@ -341,7 +341,7 @@ export default function PoolScoringClient() {
         <div style={{ marginTop: 18 }}>
           <h3>Run</h3>
           <p className="kicker" style={{ marginTop: 6 }}>
-            Enter two attempts (and optionally an extra tie-break attempt). Official score is the max balls pocketed.
+            Enter two attempts (and optionally a tiebreaker run). Official score is the max of Attempt 1/2.
           </p>
           <div className="card">
             <table className="table">
@@ -350,7 +350,7 @@ export default function PoolScoringClient() {
                   <th>Competitor</th>
                   <th style={{ width: 120 }}>Attempt 1</th>
                   <th style={{ width: 120 }}>Attempt 2</th>
-                  <th style={{ width: 120 }}>Extra</th>
+                  <th style={{ width: 120 }}>Tiebreaker</th>
                   <th style={{ width: 90 }}>Raw</th>
                   <th style={{ width: 140 }}>Place</th>
                   <th style={{ width: 90 }}>Points</th>

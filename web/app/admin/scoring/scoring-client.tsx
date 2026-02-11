@@ -152,7 +152,7 @@ export default function AdminScoringClient() {
         <table className="table">
           <thead>
             <tr>
-              <th>Participant</th>
+              <th>Competitor</th>
               <th style={{ width: 90 }}>Bowling</th>
               <th style={{ width: 90 }}>Pool</th>
               <th style={{ width: 90 }}>Darts</th>

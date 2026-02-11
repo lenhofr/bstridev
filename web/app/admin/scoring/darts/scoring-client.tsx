@@ -40,7 +40,7 @@ export default function DartsScoringClient() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Participant</th>
+                    <th>Competitor</th>
                     <th style={{ width: 140 }}>Place</th>
                     <th style={{ width: 90 }}>Points</th>
                   </tr>

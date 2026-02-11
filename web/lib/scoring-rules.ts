@@ -147,7 +147,7 @@ function computePoolRunPlacesFromAttempts(game: Game): {
       continue;
     }
 
-    // Extra runs only break ties *within* the tied group. They cannot surpass higher base raw.
+    // Tiebreaker runs only break ties *within* the tied group. They cannot surpass higher base raw.
     const anyMissingExtra = group.some((x) => x.tieBreakRaw == null);
     if (anyMissingExtra) {
       for (const x of group) {
