@@ -204,28 +204,47 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   }
 
   function setEventMeta(eventMeta: EventMeta | null) {
-    const next = recomputeDocumentDerivedFields({
-      doc: { ...doc, eventMeta },
-      pointsSchedule: DEFAULT_POINTS_SCHEDULE
-    });
-    setDoc(next);
+    setDoc((prev) =>
+      recomputeDocumentDerivedFields({
+        doc: { ...prev, eventMeta },
+        pointsSchedule: DEFAULT_POINTS_SCHEDULE
+      })
+    );
   }
 
   function setPoolMatches(poolMatches: PoolMatchResult[]) {
-    const next = recomputeDocumentDerivedFields({
-      doc: { ...doc, poolMatches },
-      pointsSchedule: DEFAULT_POINTS_SCHEDULE
-    });
-    setDoc(next);
+    setDoc((prev) =>
+      recomputeDocumentDerivedFields({
+        doc: { ...prev, poolMatches },
+        pointsSchedule: DEFAULT_POINTS_SCHEDULE
+      })
+    );
   }
 
   function upsertPoolMatch(match: PoolMatchResult) {
-    const poolMatches = [...doc.poolMatches.filter((m) => !(m.round === match.round && m.a === match.a && m.b === match.b)), match];
-    setPoolMatches(poolMatches);
+    setDoc((prev) => {
+      const poolMatches = [
+        ...prev.poolMatches.filter((m) => !(m.round === match.round && m.a === match.a && m.b === match.b)),
+        match
+      ];
+
+      return recomputeDocumentDerivedFields({
+        doc: { ...prev, poolMatches },
+        pointsSchedule: DEFAULT_POINTS_SCHEDULE
+      });
+    });
   }
 
   function removePoolMatch(params: { round: number; a: string; b: string }) {
-    setPoolMatches(doc.poolMatches.filter((m) => !(m.round === params.round && m.a === params.a && m.b === params.b)));
+    setDoc((prev) =>
+      recomputeDocumentDerivedFields({
+        doc: {
+          ...prev,
+          poolMatches: prev.poolMatches.filter((m) => !(m.round === params.round && m.a === params.a && m.b === params.b))
+        },
+        pointsSchedule: DEFAULT_POINTS_SCHEDULE
+      })
+    );
   }
 
   function setPlace(gameId: string, personId: string, place: number | null) {
