@@ -56,6 +56,7 @@ type ScoringCtx = {
   onLoadDraft: () => void;
   onSaveDraft: () => void;
   onPublish: () => void;
+  importDoc: (doc: ScoringDocumentV1) => void;
 
   addParticipant: (p: Participant) => void;
   updateParticipantDisplayName: (personId: string, displayName: string) => void;
@@ -94,8 +95,9 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   useEffect(() => {
     const loaded = loadDoc(draftKey);
     if (loaded) {
-      setDoc(loaded);
-      setYearState(loaded.year);
+      const next = recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
+      setDoc(next);
+      setYearState(next.year);
       return;
     }
 
@@ -118,7 +120,7 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
 
   function onLoadDraft() {
     const loaded = loadDoc(draftKey);
-    if (loaded) setDoc(loaded);
+    if (loaded) setDoc(recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE }));
   }
 
   function onSaveDraft() {
@@ -283,6 +285,15 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(next);
   }
 
+  function importDoc(nextDoc: ScoringDocumentV1) {
+    const nextDraftKey = `${LS_DRAFT_PREFIX}${nextDoc.eventId}`;
+    const next = recomputeDocumentDerivedFields({ doc: nextDoc, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
+    saveDoc(nextDraftKey, next);
+    setEventIdState(next.eventId);
+    setYearState(next.year);
+    setDoc(next);
+  }
+
   return (
     <Ctx.Provider
       value={{
@@ -297,6 +308,7 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         onLoadDraft,
         onSaveDraft,
         onPublish,
+        importDoc,
         addParticipant,
         updateParticipantDisplayName,
         deleteParticipant,

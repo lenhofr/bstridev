@@ -17,6 +17,7 @@ export default function AdminScoringClient() {
     onLoadDraft,
     onSaveDraft,
     onPublish,
+    importDoc,
     addParticipant,
     updateParticipantDisplayName,
     deleteParticipant
@@ -36,6 +37,25 @@ export default function AdminScoringClient() {
     addParticipant({ personId, displayName });
     setNewPersonId('');
     setNewDisplayName('');
+  }
+
+  async function onLoadFixture(url: string, label: string) {
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const raw = (await res.json()) as typeof doc;
+    const now = new Date().toISOString();
+    importDoc({
+      ...raw,
+      eventId,
+      year,
+      status: 'draft',
+      updatedAt: now,
+      updatedBy: null,
+      publishedAt: null,
+      publishedBy: null
+    });
+    setFlash(`Loaded fixture: ${label}`);
+    setTimeout(() => setFlash(null), 2500);
   }
 
   return (
@@ -177,6 +197,23 @@ export default function AdminScoringClient() {
       </div>
 
       <details style={{ marginTop: 18 }}>
+        <summary>Fixtures (load sample TRI docs)</summary>
+        <div className="card" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>
+            Loads a sample scoring document (participants + scenarios). This overwrites the current draft.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/even-6-blank.json', 'Even (6) blank')}>Even (6) blank</button>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/odd-5-blank.json', 'Odd (5) blank')}>Odd (5) blank</button>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-incomplete.json', 'Pool H2H incomplete')}>Pool H2H incomplete</button>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-resolves.json', 'Pool H2H resolves')}>Pool H2H resolves</button>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-run-tiebreaker-only.json', 'Pool Run tiebreaker')}>Pool Run tiebreaker</button>
+            <button onClick={() => void onLoadFixture('/fixtures/scoring/duplicate-places.json', 'Duplicate places')}>Duplicate places</button>
+          </div>
+        </div>
+      </details>
+
+      <details style={{ marginTop: 12 }}>
         <summary>Raw JSON (current doc)</summary>
         <div className="card" style={{ overflowX: 'auto', marginTop: 8 }}>
           <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
