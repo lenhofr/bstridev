@@ -12,10 +12,10 @@ export default function AdminScoringLayout(props: { children: React.ReactNode })
         <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 className="panelTitle" style={{ marginBottom: 4 }}>
-              Admin Scoring (Local Mock)
+              Admin Scoring
             </h1>
             <p className="kicker" style={{ marginTop: 0 }}>
-              Draft/published docs are stored in localStorage (no auth/AWS yet).
+              Uses localStorage by default; when configured, uses the AWS backend (Cognito + API + DynamoDB).
             </p>
           </div>
           <AdminScoringEventIcon />

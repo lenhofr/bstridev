@@ -140,20 +140,40 @@ export default function AdminScoringClient() {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={onNewDoc}>New TRI</button>
-          <button onClick={onLoadDraft}>Load TRI</button>
           <button
-            onClick={() => {
-              onSaveDraft();
-              setFlash('Saved');
+            onClick={async () => {
+              try {
+                await onLoadDraft();
+                setFlash('Loaded');
+              } catch (e) {
+                setFlash((e as Error)?.message ?? String(e));
+              }
+              setTimeout(() => setFlash(null), 2500);
+            }}
+          >
+            Load TRI
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await onSaveDraft();
+                setFlash('Saved');
+              } catch (e) {
+                setFlash((e as Error)?.message ?? String(e));
+              }
               setTimeout(() => setFlash(null), 2500);
             }}
           >
             Save TRI
           </button>
           <button
-            onClick={() => {
-              onPublish();
-              setFlash('Published');
+            onClick={async () => {
+              try {
+                await onPublish();
+                setFlash('Published');
+              } catch (e) {
+                setFlash((e as Error)?.message ?? String(e));
+              }
               setTimeout(() => setFlash(null), 2500);
             }}
           >

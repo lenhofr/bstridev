@@ -4,6 +4,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { EventMeta, Participant, PoolMatchResult, ScoringDocumentV1 } from '../../../lib/scoring-model';
 import { createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
+import { apiGetDraft, apiPublish, apiPutDraft } from '../../../lib/scoring-api';
+import { getAccessToken } from '../../../lib/cognito-auth';
+import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
 import { emptyGameResult, OPTIONAL_4TH_5TH_POINTS, recomputeDocumentDerivedFields } from '../../../lib/scoring-rules';
 
 const LS_DRAFT_PREFIX = 'bstri:scoring:draft:';
@@ -53,9 +56,9 @@ type ScoringCtx = {
   setYear: (year: number) => void;
 
   onNewDoc: () => void;
-  onLoadDraft: () => void;
-  onSaveDraft: () => void;
-  onPublish: () => void;
+  onLoadDraft: () => Promise<void>;
+  onSaveDraft: () => Promise<void>;
+  onPublish: () => Promise<void>;
   importDoc: (doc: ScoringDocumentV1) => void;
 
   addParticipant: (p: Participant) => void;
@@ -118,18 +121,47 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(makeNewDoc({ eventId, year, participants: [] }));
   }
 
-  function onLoadDraft() {
+  async function onLoadDraft() {
+    if (hasBackendConfig()) {
+      const accessToken = getAccessToken();
+      if (!accessToken) throw new Error('Not logged in (Cognito)');
+      const loaded = await apiGetDraft({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId, accessToken });
+      const next = recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
+      setDoc(next);
+      setYearState(next.year);
+      return;
+    }
+
     const loaded = loadDoc(draftKey);
     if (loaded) setDoc(recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE }));
   }
 
-  function onSaveDraft() {
+  async function onSaveDraft() {
     const next = { ...doc, status: 'draft' as const, updatedAt: new Date().toISOString() };
+
+    if (hasBackendConfig()) {
+      const accessToken = getAccessToken();
+      if (!accessToken) throw new Error('Not logged in (Cognito)');
+      await apiPutDraft({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId, accessToken, doc: next });
+      setDoc(next);
+      return;
+    }
+
     saveDoc(draftKey, next);
     setDoc(next);
   }
 
-  function onPublish() {
+  async function onPublish() {
+    if (hasBackendConfig()) {
+      const accessToken = getAccessToken();
+      if (!accessToken) throw new Error('Not logged in (Cognito)');
+      const nextDraft = { ...doc, status: 'draft' as const, updatedAt: new Date().toISOString() };
+      await apiPutDraft({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId, accessToken, doc: nextDraft });
+      const res = await apiPublish({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId, accessToken });
+      setDoc({ ...nextDraft, status: 'published', updatedAt: res.publishedAt, publishedAt: res.publishedAt });
+      return;
+    }
+
     const now = new Date().toISOString();
     const published: ScoringDocumentV1 = {
       ...doc,
