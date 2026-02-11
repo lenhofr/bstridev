@@ -194,6 +194,15 @@ export default function PublishedScoringClient() {
   const publishedKey = useMemo(() => `${LS_PUBLISHED_PREFIX}${eventId}`, [eventId]);
 
   const [doc, setDoc] = useState<ScoringDocumentV1 | null>(null);
+
+  const orderedParticipants = useMemo(() => {
+    if (!doc) return [];
+    const participants = doc.participants;
+    const baseOrder = doc.eventMeta?.competitorOrder?.length ? doc.eventMeta.competitorOrder : participants.map((p) => p.personId);
+    const competitorOrder = [...baseOrder, ...participants.map((p) => p.personId).filter((pid) => !baseOrder.includes(pid))];
+    const participantsById = new Map(participants.map((p) => [p.personId, p] as const));
+    return competitorOrder.map((pid) => participantsById.get(pid)).filter((p): p is (typeof participants)[number] => Boolean(p));
+  }, [doc]);
   const [error, setError] = useState<string | null>(null);
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
   const [totalsSort, setTotalsSort] = useState<SortSpec>({ key: 'triathlon', dir: 'desc' });
@@ -272,7 +281,7 @@ export default function PublishedScoringClient() {
                 </tr>
               </thead>
               <tbody>
-                {[...doc.participants]
+                {[...orderedParticipants]
                   .map((p, idx) => ({
                     p,
                     idx,
@@ -319,7 +328,7 @@ export default function PublishedScoringClient() {
             <SubEventSection
               key={se.subEventId}
               subEvent={se}
-              participants={doc.participants}
+              participants={orderedParticipants}
               sortByGame={sortByGame}
               setSortByGame={setSortByGame}
             />

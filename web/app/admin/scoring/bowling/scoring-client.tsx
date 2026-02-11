@@ -50,6 +50,11 @@ export default function BowlingScoringClient() {
   const participants = doc.participants;
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
 
+  const baseOrder = doc.eventMeta?.competitorOrder?.length ? doc.eventMeta.competitorOrder : participants.map((p) => p.personId);
+  const competitorOrder = [...baseOrder, ...participants.map((p) => p.personId).filter((pid) => !baseOrder.includes(pid))];
+  const participantsById = new Map(participants.map((p) => [p.personId, p] as const));
+  const orderedParticipants = competitorOrder.map((pid) => participantsById.get(pid)).filter((p): p is (typeof participants)[number] => Boolean(p));
+
   const bowling = doc.subEvents.find((x) => x.subEventId === 'bowling');
 
   return (
@@ -62,7 +67,7 @@ export default function BowlingScoringClient() {
       {bowling?.games.map((g) => {
         const rawCounts = new Map<number, number>();
         const placeCounts = new Map<number, number>();
-        for (const p of participants) {
+        for (const p of orderedParticipants) {
           const r = g.results[p.personId] ?? emptyGameResult();
           if (typeof r.raw === 'number') rawCounts.set(r.raw, (rawCounts.get(r.raw) ?? 0) + 1);
           if (typeof r.place === 'number') placeCounts.set(r.place, (placeCounts.get(r.place) ?? 0) + 1);
@@ -74,7 +79,7 @@ export default function BowlingScoringClient() {
           .sort((a, b) => a - b);
 
         const sort = sortByGame[g.gameId] ?? { key: 'order', dir: 'asc' as const };
-        const sorted = participants
+        const sorted = orderedParticipants
           .map((p, idx) => ({ p, idx, r: g.results[p.personId] ?? emptyGameResult() }))
           .sort((a, b) => {
             if (sort.key === 'order') return a.idx - b.idx;

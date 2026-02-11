@@ -260,7 +260,7 @@ export default function AdminScoringClient() {
             </tr>
           </thead>
           <tbody>
-            {participants.map((p) => {
+            {orderedParticipants.map((p) => {
               const t = doc.totals.byPerson[p.personId];
               return (
                 <tr key={p.personId}>
