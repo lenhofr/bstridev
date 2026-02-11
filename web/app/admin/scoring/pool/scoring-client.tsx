@@ -52,6 +52,15 @@ function cmpStr(a: string, b: string, dir: SortDir): number {
   return dir === 'asc' ? res : -res;
 }
 
+function sortMark(active: boolean, dir: SortDir) {
+  if (!active) return null;
+  return (
+    <span aria-hidden style={{ opacity: 0.7, marginLeft: 6 }}>
+      {dir === 'asc' ? '▲' : '▼'}
+    </span>
+  );
+}
+
 export default function PoolScoringClient() {
   const { doc, setEventMeta, setPoolMatches, upsertPoolMatch, removePoolMatch, setPlace, setAttempts } = useScoring();
   const participants = doc.participants;
@@ -220,10 +229,10 @@ export default function PoolScoringClient() {
                       style={{ width: 90, cursor: 'pointer' }}
                       onClick={() => setMatchSort((p) => nextSort(p, 'table', 'asc'))}
                     >
-                      Table
+                      Table{sortMark(matchSort.key === 'table', matchSort.dir)}
                     </th>
                     <th style={{ cursor: 'pointer' }} onClick={() => setMatchSort((p) => nextSort(p, 'match', 'asc'))}>
-                      Match
+                      Match{sortMark(matchSort.key === 'match', matchSort.dir)}
                     </th>
                     <th style={{ width: 220 }}>8-ball winner</th>
                     <th style={{ width: 220 }}>9-ball winner</th>
@@ -231,7 +240,7 @@ export default function PoolScoringClient() {
                       style={{ width: 120, cursor: 'pointer' }}
                       onClick={() => setMatchSort((p) => nextSort(p, 'status', 'asc'))}
                     >
-                      Status
+                      Status{sortMark(matchSort.key === 'status', matchSort.dir)}
                     </th>
                   </tr>
                 </thead>
@@ -327,16 +336,16 @@ export default function PoolScoringClient() {
             <thead>
               <tr>
                 <th style={{ cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'competitor', 'asc'))}>
-                  Competitor
+                  Competitor{sortMark(sort8.key === 'competitor', sort8.dir)}
                 </th>
                 <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'wins', 'desc'))}>
-                  Wins
+                  Wins{sortMark(sort8.key === 'wins', sort8.dir)}
                 </th>
                 <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'place', 'asc'))}>
-                  Place
+                  Place{sortMark(sort8.key === 'place', sort8.dir)}
                 </th>
                 <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'points', 'desc'))}>
-                  Points
+                  Points{sortMark(sort8.key === 'points', sort8.dir)}
                 </th>
               </tr>
             </thead>
@@ -411,16 +420,16 @@ export default function PoolScoringClient() {
             <thead>
               <tr>
                 <th style={{ cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'competitor', 'asc'))}>
-                  Competitor
+                  Competitor{sortMark(sort9.key === 'competitor', sort9.dir)}
                 </th>
                 <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'wins', 'desc'))}>
-                  Wins
+                  Wins{sortMark(sort9.key === 'wins', sort9.dir)}
                 </th>
                 <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'place', 'asc'))}>
-                  Place
+                  Place{sortMark(sort9.key === 'place', sort9.dir)}
                 </th>
                 <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'points', 'desc'))}>
-                  Points
+                  Points{sortMark(sort9.key === 'points', sort9.dir)}
                 </th>
               </tr>
             </thead>
@@ -499,25 +508,25 @@ export default function PoolScoringClient() {
               <thead>
                 <tr>
                   <th style={{ cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'competitor', 'asc'))}>
-                    Competitor
+                    Competitor{sortMark(sortRun.key === 'competitor', sortRun.dir)}
                   </th>
                   <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'a1', 'desc'))}>
-                    Attempt 1
+                    Attempt 1{sortMark(sortRun.key === 'a1', sortRun.dir)}
                   </th>
                   <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'a2', 'desc'))}>
-                    Attempt 2
+                    Attempt 2{sortMark(sortRun.key === 'a2', sortRun.dir)}
                   </th>
                   <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'tb', 'desc'))}>
-                    Tiebreaker
+                    Tiebreaker{sortMark(sortRun.key === 'tb', sortRun.dir)}
                   </th>
                   <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'raw', 'desc'))}>
-                    Raw
+                    Raw{sortMark(sortRun.key === 'raw', sortRun.dir)}
                   </th>
                   <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'place', 'asc'))}>
-                    Place
+                    Place{sortMark(sortRun.key === 'place', sortRun.dir)}
                   </th>
                   <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'points', 'desc'))}>
-                    Points
+                    Points{sortMark(sortRun.key === 'points', sortRun.dir)}
                   </th>
                 </tr>
               </thead>

@@ -30,6 +30,15 @@ function cmpNum(a: number | null, b: number | null, dir: SortDir): number {
   return dir === 'asc' ? a - b : b - a;
 }
 
+function sortMark(active: boolean, dir: SortDir) {
+  if (!active) return null;
+  return (
+    <span aria-hidden style={{ opacity: 0.7, marginLeft: 6 }}>
+      {dir === 'asc' ? '▲' : '▼'}
+    </span>
+  );
+}
+
 export default function DartsScoringClient() {
   const { doc, setPlace } = useScoring();
   const participants = doc.participants;
@@ -82,13 +91,13 @@ export default function DartsScoringClient() {
                 <thead>
                   <tr>
                     <th style={{ cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'competitor') }))}>
-                      Competitor
+                      Competitor{sortMark(sort.key === 'competitor', sort.dir)}
                     </th>
                     <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'place') }))}>
-                      Place
+                      Place{sortMark(sort.key === 'place', sort.dir)}
                     </th>
                     <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'points') }))}>
-                      Points
+                      Points{sortMark(sort.key === 'points', sort.dir)}
                     </th>
                   </tr>
                 </thead>
