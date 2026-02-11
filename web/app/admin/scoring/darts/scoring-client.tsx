@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { emptyGameResult } from '../../../../lib/scoring-rules';
 import { useScoring } from '../scoring-context';
 
@@ -7,9 +9,31 @@ function placeStyle(place: number | null) {
   return typeof place === 'number' && place >= 1 && place <= 5 ? { fontWeight: 700 } : undefined;
 }
 
+type SortDir = 'asc' | 'desc';
+type SortKey = 'order' | 'competitor' | 'place' | 'points';
+type SortSpec = { key: SortKey; dir: SortDir };
+
+function initialDirForKey(key: SortKey): SortDir {
+  if (key === 'points') return 'desc';
+  return 'asc';
+}
+
+function nextSort(prev: SortSpec | undefined, key: SortKey): SortSpec {
+  if (prev?.key !== key) return { key, dir: initialDirForKey(key) };
+  return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' };
+}
+
+function cmpNum(a: number | null, b: number | null, dir: SortDir): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return dir === 'asc' ? a - b : b - a;
+}
+
 export default function DartsScoringClient() {
   const { doc, setPlace } = useScoring();
   const participants = doc.participants;
+  const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
 
   const darts = doc.subEvents.find((x) => x.subEventId === 'darts');
 
@@ -32,6 +56,19 @@ export default function DartsScoringClient() {
           .map(([pl]) => pl)
           .sort((a, b) => a - b);
 
+        const sort = sortByGame[g.gameId] ?? { key: 'order', dir: 'asc' as const };
+        const sorted = participants
+          .map((p, idx) => ({ p, idx, r: g.results[p.personId] ?? emptyGameResult() }))
+          .sort((a, b) => {
+            if (sort.key === 'order') return a.idx - b.idx;
+            if (sort.key === 'competitor') {
+              const res = a.p.displayName.localeCompare(b.p.displayName);
+              return sort.dir === 'asc' ? res : -res;
+            }
+            if (sort.key === 'place') return cmpNum(a.r.place, b.r.place, sort.dir);
+            return cmpNum(a.r.points, b.r.points, sort.dir);
+          });
+
         return (
           <section key={g.gameId} style={{ marginTop: 12 }}>
             <h3 style={{ margin: '0 0 8px' }}>{g.label}</h3>
@@ -44,14 +81,19 @@ export default function DartsScoringClient() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Competitor</th>
-                    <th style={{ width: 140 }}>Place</th>
-                    <th style={{ width: 90 }}>Points</th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'competitor') }))}>
+                      Competitor
+                    </th>
+                    <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'place') }))}>
+                      Place
+                    </th>
+                    <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortByGame((p) => ({ ...p, [g.gameId]: nextSort(p[g.gameId], 'points') }))}>
+                      Points
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {participants.map((p) => {
-                    const r = g.results[p.personId] ?? emptyGameResult();
+                  {sorted.map(({ p, r }) => {
                     const isDup = typeof r.place === 'number' && (placeCounts.get(r.place) ?? 0) > 1;
                     return (
                       <tr key={p.personId}>

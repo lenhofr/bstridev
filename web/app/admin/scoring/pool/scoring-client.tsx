@@ -29,6 +29,29 @@ function renderPlace(place: number | null) {
   return place >= 1 && place <= 5 ? <b>{place}</b> : place;
 }
 
+type SortDir = 'asc' | 'desc';
+
+function nextSort<T extends string>(
+  prev: { key: T; dir: SortDir } | undefined,
+  key: T,
+  initialDir: SortDir
+): { key: T; dir: SortDir } {
+  if (prev?.key !== key) return { key, dir: initialDir };
+  return { key, dir: (prev.dir === 'asc' ? 'desc' : 'asc') as SortDir };
+}
+
+function cmpNum(a: number | null, b: number | null, dir: SortDir): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return dir === 'asc' ? a - b : b - a;
+}
+
+function cmpStr(a: string, b: string, dir: SortDir): number {
+  const res = a.localeCompare(b);
+  return dir === 'asc' ? res : -res;
+}
+
 export default function PoolScoringClient() {
   const { doc, setEventMeta, setPoolMatches, upsertPoolMatch, removePoolMatch, setPlace, setAttempts } = useScoring();
   const participants = doc.participants;
@@ -46,6 +69,25 @@ export default function PoolScoringClient() {
 
   const [tablesText, setTablesText] = useState(() => (doc.eventMeta?.poolTables?.length ? doc.eventMeta.poolTables.join(',') : '1,2'));
   const [partial, setPartial] = useState<Record<string, { w8: string | null; w9: string | null }>>({});
+
+  const [matchSort, setMatchSort] = useState<{ key: 'table' | 'match' | 'status'; dir: SortDir }>({
+    key: 'table',
+    dir: 'asc'
+  });
+  const [sort8, setSort8] = useState<{ key: 'order' | 'competitor' | 'wins' | 'place' | 'points'; dir: SortDir }>({
+    key: 'order',
+    dir: 'asc'
+  });
+  const [sort9, setSort9] = useState<{ key: 'order' | 'competitor' | 'wins' | 'place' | 'points'; dir: SortDir }>({
+    key: 'order',
+    dir: 'asc'
+  });
+  const [sortRun, setSortRun] = useState<{ key: 'order' | 'competitor' | 'a1' | 'a2' | 'tb' | 'raw' | 'place' | 'points'; dir: SortDir }>(
+    {
+      key: 'order',
+      dir: 'asc'
+    }
+  );
 
   function displayName(personId: string) {
     return participants.find((p) => p.personId === personId)?.displayName ?? personId;
@@ -174,68 +216,102 @@ export default function PoolScoringClient() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: 90 }}>Table</th>
-                    <th>Match</th>
+                    <th
+                      style={{ width: 90, cursor: 'pointer' }}
+                      onClick={() => setMatchSort((p) => nextSort(p, 'table', 'asc'))}
+                    >
+                      Table
+                    </th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => setMatchSort((p) => nextSort(p, 'match', 'asc'))}>
+                      Match
+                    </th>
                     <th style={{ width: 220 }}>8-ball winner</th>
                     <th style={{ width: 220 }}>9-ball winner</th>
-                    <th style={{ width: 120 }}>Status</th>
+                    <th
+                      style={{ width: 120, cursor: 'pointer' }}
+                      onClick={() => setMatchSort((p) => nextSort(p, 'status', 'asc'))}
+                    >
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {r.matches.map((m) => {
-                    const key = matchKey({ round: r.round, a: m.a, b: m.b });
-                    const existing = doc.poolMatches.find((x) => x.round === r.round && x.a === m.a && x.b === m.b);
-                    const cur = partial[key] ?? { w8: existing?.winner8Ball ?? null, w9: existing?.winner9Ball ?? null };
-                    const done = !!(cur.w8 && cur.w9);
+                  {(() => {
+                    const sortedMatches = r.matches
+                      .map((m, idx) => ({ m, idx }))
+                      .sort((a, b) => {
+                        const keyA = matchKey({ round: r.round, a: a.m.a, b: a.m.b });
+                        const keyB = matchKey({ round: r.round, a: b.m.a, b: b.m.b });
+                        const existingA = doc.poolMatches.find((x) => x.round === r.round && x.a === a.m.a && x.b === a.m.b);
+                        const existingB = doc.poolMatches.find((x) => x.round === r.round && x.a === b.m.a && x.b === b.m.b);
+                        const curA = partial[keyA] ?? { w8: existingA?.winner8Ball ?? null, w9: existingA?.winner9Ball ?? null };
+                        const curB = partial[keyB] ?? { w8: existingB?.winner8Ball ?? null, w9: existingB?.winner9Ball ?? null };
+                        const doneA = curA.w8 && curA.w9 ? 1 : 0;
+                        const doneB = curB.w8 && curB.w9 ? 1 : 0;
 
-                    return (
-                      <tr key={key}>
-                        <td>{m.table}</td>
-                        <td>
-                          {displayName(m.a)} vs {displayName(m.b)}
-                        </td>
-                        <td>
-                          <select
-                            value={cur.w8 ?? ''}
-                            onChange={(e) =>
-                              setWinner({
-                                round: r.round,
-                                a: m.a,
-                                b: m.b,
-                                table: m.table,
-                                which: 'w8',
-                                winner: e.target.value === '' ? null : e.target.value
-                              })
-                            }
-                          >
-                            <option value="">—</option>
-                            <option value={m.a}>{displayName(m.a)}</option>
-                            <option value={m.b}>{displayName(m.b)}</option>
-                          </select>
-                        </td>
-                        <td>
-                          <select
-                            value={cur.w9 ?? ''}
-                            onChange={(e) =>
-                              setWinner({
-                                round: r.round,
-                                a: m.a,
-                                b: m.b,
-                                table: m.table,
-                                which: 'w9',
-                                winner: e.target.value === '' ? null : e.target.value
-                              })
-                            }
-                          >
-                            <option value="">—</option>
-                            <option value={m.a}>{displayName(m.a)}</option>
-                            <option value={m.b}>{displayName(m.b)}</option>
-                          </select>
-                        </td>
-                        <td>{done ? 'Complete' : 'Incomplete'}</td>
-                      </tr>
-                    );
-                  })}
+                        if (matchSort.key === 'table') return cmpNum(a.m.table, b.m.table, matchSort.dir) || a.idx - b.idx;
+                        if (matchSort.key === 'status') return cmpNum(doneA, doneB, matchSort.dir) || a.idx - b.idx;
+
+                        const labelA = `${displayName(a.m.a)} vs ${displayName(a.m.b)}`;
+                        const labelB = `${displayName(b.m.a)} vs ${displayName(b.m.b)}`;
+                        return cmpStr(labelA, labelB, matchSort.dir) || a.idx - b.idx;
+                      });
+
+                    return sortedMatches.map(({ m }) => {
+                      const key = matchKey({ round: r.round, a: m.a, b: m.b });
+                      const existing = doc.poolMatches.find((x) => x.round === r.round && x.a === m.a && x.b === m.b);
+                      const cur = partial[key] ?? { w8: existing?.winner8Ball ?? null, w9: existing?.winner9Ball ?? null };
+                      const done = !!(cur.w8 && cur.w9);
+
+                      return (
+                        <tr key={key}>
+                          <td>{m.table}</td>
+                          <td>
+                            {displayName(m.a)} vs {displayName(m.b)}
+                          </td>
+                          <td>
+                            <select
+                              value={cur.w8 ?? ''}
+                              onChange={(e) =>
+                                setWinner({
+                                  round: r.round,
+                                  a: m.a,
+                                  b: m.b,
+                                  table: m.table,
+                                  which: 'w8',
+                                  winner: e.target.value === '' ? null : e.target.value
+                                })
+                              }
+                            >
+                              <option value="">—</option>
+                              <option value={m.a}>{displayName(m.a)}</option>
+                              <option value={m.b}>{displayName(m.b)}</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              value={cur.w9 ?? ''}
+                              onChange={(e) =>
+                                setWinner({
+                                  round: r.round,
+                                  a: m.a,
+                                  b: m.b,
+                                  table: m.table,
+                                  which: 'w9',
+                                  winner: e.target.value === '' ? null : e.target.value
+                                })
+                              }
+                            >
+                              <option value="">—</option>
+                              <option value={m.a}>{displayName(m.a)}</option>
+                              <option value={m.b}>{displayName(m.b)}</option>
+                            </select>
+                          </td>
+                          <td>{done ? 'Complete' : 'Incomplete'}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -250,23 +326,55 @@ export default function PoolScoringClient() {
           <table className="table">
             <thead>
               <tr>
-                <th>Competitor</th>
-                <th style={{ width: 90 }}>Wins</th>
-                <th style={{ width: 140 }}>Place</th>
-                <th style={{ width: 90 }}>Points</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'competitor', 'asc'))}>
+                  Competitor
+                </th>
+                <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'wins', 'desc'))}>
+                  Wins
+                </th>
+                <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'place', 'asc'))}>
+                  Place
+                </th>
+                <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort8((p) => nextSort(p, 'points', 'desc'))}>
+                  Points
+                </th>
               </tr>
             </thead>
             <tbody>
               {(() => {
+                const base = competitorOrder.flatMap((personId, idx) => {
+                  const p = participants.find((x) => x.personId === personId);
+                  if (!p) return [];
+                  const r = game8.results[p.personId] ?? emptyGameResult();
+                  return [{ idx, p, r }];
+                });
+
                 const rawCounts = new Map<number, number>();
-                for (const p of participants) {
-                  const raw = (game8.results[p.personId] ?? emptyGameResult()).raw;
+                for (const { r } of base) {
+                  const raw = r.raw;
                   if (typeof raw !== 'number') continue;
                   rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
                 }
 
-                return participants.map((p) => {
-                  const r = game8.results[p.personId] ?? emptyGameResult();
+                const sorted = base
+                  .map((row, stableIdx) => ({ ...row, stableIdx }))
+                  .sort((a, b) => {
+                    const winsA = typeof a.r.raw === 'number' ? a.r.raw : null;
+                    const winsB = typeof b.r.raw === 'number' ? b.r.raw : null;
+                    const placeA = typeof a.r.place === 'number' ? a.r.place : null;
+                    const placeB = typeof b.r.place === 'number' ? b.r.place : null;
+                    const pointsA = typeof a.r.points === 'number' ? a.r.points : null;
+                    const pointsB = typeof b.r.points === 'number' ? b.r.points : null;
+
+                    if (sort8.key === 'order') return cmpNum(a.idx, b.idx, sort8.dir) || a.stableIdx - b.stableIdx;
+                    if (sort8.key === 'competitor')
+                      return cmpStr(a.p.displayName, b.p.displayName, sort8.dir) || a.stableIdx - b.stableIdx;
+                    if (sort8.key === 'wins') return cmpNum(winsA, winsB, sort8.dir) || a.stableIdx - b.stableIdx;
+                    if (sort8.key === 'place') return cmpNum(placeA, placeB, sort8.dir) || a.stableIdx - b.stableIdx;
+                    return cmpNum(pointsA, pointsB, sort8.dir) || a.stableIdx - b.stableIdx;
+                  });
+
+                return sorted.map(({ p, r }) => {
                   const isTie = typeof r.raw === 'number' && (rawCounts.get(r.raw) ?? 0) > 1;
                   return (
                     <tr key={p.personId}>
@@ -302,23 +410,55 @@ export default function PoolScoringClient() {
           <table className="table">
             <thead>
               <tr>
-                <th>Competitor</th>
-                <th style={{ width: 90 }}>Wins</th>
-                <th style={{ width: 140 }}>Place</th>
-                <th style={{ width: 90 }}>Points</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'competitor', 'asc'))}>
+                  Competitor
+                </th>
+                <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'wins', 'desc'))}>
+                  Wins
+                </th>
+                <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'place', 'asc'))}>
+                  Place
+                </th>
+                <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSort9((p) => nextSort(p, 'points', 'desc'))}>
+                  Points
+                </th>
               </tr>
             </thead>
             <tbody>
               {(() => {
+                const base = competitorOrder.flatMap((personId, idx) => {
+                  const p = participants.find((x) => x.personId === personId);
+                  if (!p) return [];
+                  const r = game9.results[p.personId] ?? emptyGameResult();
+                  return [{ idx, p, r }];
+                });
+
                 const rawCounts = new Map<number, number>();
-                for (const p of participants) {
-                  const raw = (game9.results[p.personId] ?? emptyGameResult()).raw;
+                for (const { r } of base) {
+                  const raw = r.raw;
                   if (typeof raw !== 'number') continue;
                   rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
                 }
 
-                return participants.map((p) => {
-                  const r = game9.results[p.personId] ?? emptyGameResult();
+                const sorted = base
+                  .map((row, stableIdx) => ({ ...row, stableIdx }))
+                  .sort((a, b) => {
+                    const winsA = typeof a.r.raw === 'number' ? a.r.raw : null;
+                    const winsB = typeof b.r.raw === 'number' ? b.r.raw : null;
+                    const placeA = typeof a.r.place === 'number' ? a.r.place : null;
+                    const placeB = typeof b.r.place === 'number' ? b.r.place : null;
+                    const pointsA = typeof a.r.points === 'number' ? a.r.points : null;
+                    const pointsB = typeof b.r.points === 'number' ? b.r.points : null;
+
+                    if (sort9.key === 'order') return cmpNum(a.idx, b.idx, sort9.dir) || a.stableIdx - b.stableIdx;
+                    if (sort9.key === 'competitor')
+                      return cmpStr(a.p.displayName, b.p.displayName, sort9.dir) || a.stableIdx - b.stableIdx;
+                    if (sort9.key === 'wins') return cmpNum(winsA, winsB, sort9.dir) || a.stableIdx - b.stableIdx;
+                    if (sort9.key === 'place') return cmpNum(placeA, placeB, sort9.dir) || a.stableIdx - b.stableIdx;
+                    return cmpNum(pointsA, pointsB, sort9.dir) || a.stableIdx - b.stableIdx;
+                  });
+
+                return sorted.map(({ p, r }) => {
                   const isTie = typeof r.raw === 'number' && (rawCounts.get(r.raw) ?? 0) > 1;
                   return (
                     <tr key={p.personId}>
@@ -358,20 +498,41 @@ export default function PoolScoringClient() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Competitor</th>
-                  <th style={{ width: 120 }}>Attempt 1</th>
-                  <th style={{ width: 120 }}>Attempt 2</th>
-                  <th style={{ width: 120 }}>Tiebreaker</th>
-                  <th style={{ width: 90 }}>Raw</th>
-                  <th style={{ width: 140 }}>Place</th>
-                  <th style={{ width: 90 }}>Points</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'competitor', 'asc'))}>
+                    Competitor
+                  </th>
+                  <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'a1', 'desc'))}>
+                    Attempt 1
+                  </th>
+                  <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'a2', 'desc'))}>
+                    Attempt 2
+                  </th>
+                  <th style={{ width: 120, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'tb', 'desc'))}>
+                    Tiebreaker
+                  </th>
+                  <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'raw', 'desc'))}>
+                    Raw
+                  </th>
+                  <th style={{ width: 140, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'place', 'asc'))}>
+                    Place
+                  </th>
+                  <th style={{ width: 90, cursor: 'pointer' }} onClick={() => setSortRun((p) => nextSort(p, 'points', 'desc'))}>
+                    Points
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {(() => {
+                  const base = competitorOrder.flatMap((personId, idx) => {
+                    const p = participants.find((x) => x.personId === personId);
+                    if (!p) return [];
+                    const r = gameRun.results[p.personId] ?? emptyGameResult();
+                    return [{ idx, p, r }];
+                  });
+
                   const rawCounts = new Map<number, number>();
-                  for (const p of participants) {
-                    const raw = (gameRun.results[p.personId] ?? emptyGameResult()).raw;
+                  for (const { r } of base) {
+                    const raw = r.raw;
                     if (typeof raw !== 'number') continue;
                     rawCounts.set(raw, (rawCounts.get(raw) ?? 0) + 1);
                   }
@@ -386,8 +547,36 @@ export default function PoolScoringClient() {
                     setAttempts(gameRun.gameId, personId, any ? next : null);
                   }
 
-                  return participants.map((p) => {
-                    const r = gameRun.results[p.personId] ?? emptyGameResult();
+                  const sorted = base
+                    .map((row, stableIdx) => ({ ...row, stableIdx }))
+                    .sort((a, b) => {
+                      const attemptsA = a.r.attempts ?? [0, 0, 0];
+                      const attemptsB = b.r.attempts ?? [0, 0, 0];
+                      const a1A = attemptsA[0] > 0 ? attemptsA[0] : null;
+                      const a1B = attemptsB[0] > 0 ? attemptsB[0] : null;
+                      const a2A = attemptsA[1] > 0 ? attemptsA[1] : null;
+                      const a2B = attemptsB[1] > 0 ? attemptsB[1] : null;
+                      const tbA = attemptsA[2] > 0 ? attemptsA[2] : null;
+                      const tbB = attemptsB[2] > 0 ? attemptsB[2] : null;
+                      const rawA = typeof a.r.raw === 'number' ? a.r.raw : null;
+                      const rawB = typeof b.r.raw === 'number' ? b.r.raw : null;
+                      const placeA = typeof a.r.place === 'number' ? a.r.place : null;
+                      const placeB = typeof b.r.place === 'number' ? b.r.place : null;
+                      const pointsA = typeof a.r.points === 'number' ? a.r.points : null;
+                      const pointsB = typeof b.r.points === 'number' ? b.r.points : null;
+
+                      if (sortRun.key === 'order') return cmpNum(a.idx, b.idx, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'competitor')
+                        return cmpStr(a.p.displayName, b.p.displayName, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'a1') return cmpNum(a1A, a1B, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'a2') return cmpNum(a2A, a2B, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'tb') return cmpNum(tbA, tbB, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'raw') return cmpNum(rawA, rawB, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      if (sortRun.key === 'place') return cmpNum(placeA, placeB, sortRun.dir) || a.stableIdx - b.stableIdx;
+                      return cmpNum(pointsA, pointsB, sortRun.dir) || a.stableIdx - b.stableIdx;
+                    });
+
+                  return sorted.map(({ p, r }) => {
                     const attempts = r.attempts ?? [0, 0, 0];
                     const raw = r.raw;
                     const isTie = typeof raw === 'number' && (rawCounts.get(raw) ?? 0) > 1;
