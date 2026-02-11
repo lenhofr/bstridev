@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { Participant, ScoringDocumentV1 } from '../../../lib/scoring-model';
 import { createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
@@ -17,12 +17,18 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, '');
 }
 
-function makeNewDoc(params: { eventId: string; year: number; participants: Participant[] }): ScoringDocumentV1 {
+function makeNewDoc(params: {
+  eventId: string;
+  year: number;
+  participants: Participant[];
+  updatedAt?: string;
+}): ScoringDocumentV1 {
   const base = createEmptyScoringDocumentV1({
     eventId: params.eventId,
     year: params.year,
     status: 'draft',
-    participants: params.participants
+    participants: params.participants,
+    updatedAt: params.updatedAt
   });
 
   // Default: enable optional 4th/5th points (can be made configurable later).
@@ -50,10 +56,31 @@ export default function AdminScoringClient() {
   const [eventId, setEventId] = useState('triathlon-2026');
   const [year, setYear] = useState(2026);
   const [participantName, setParticipantName] = useState('');
-  const [doc, setDoc] = useState<ScoringDocumentV1>(() => makeNewDoc({ eventId: 'triathlon-2026', year: 2026, participants: [] }));
+
+  // Avoid hydration mismatches: use a deterministic initial document during SSR,
+  // then create/load the real draft on the client after mount.
+  const [doc, setDoc] = useState<ScoringDocumentV1>(() =>
+    makeNewDoc({
+      eventId: 'triathlon-2026',
+      year: 2026,
+      participants: [],
+      updatedAt: '1970-01-01T00:00:00.000Z'
+    })
+  );
 
   const draftKey = useMemo(() => `${LS_DRAFT_PREFIX}${eventId}`, [eventId]);
   const publishedKey = useMemo(() => `${LS_PUBLISHED_PREFIX}${eventId}`, [eventId]);
+
+  useEffect(() => {
+    const loaded = loadDoc(draftKey);
+    if (loaded) {
+      setDoc(loaded);
+      return;
+    }
+
+    setDoc(makeNewDoc({ eventId, year, participants: [] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function onNewDoc() {
     setDoc(makeNewDoc({ eventId, year, participants: [] }));
@@ -303,7 +330,9 @@ export default function AdminScoringClient() {
 
       <h2 style={{ marginTop: 18 }}>Raw JSON (current doc)</h2>
       <div className="card" style={{ overflowX: 'auto' }}>
-        <pre style={{ margin: 0, fontSize: 12 }}>{JSON.stringify(doc, null, 2)}</pre>
+        <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
+          {JSON.stringify(doc, null, 2)}
+        </pre>
       </div>
     </div>
   );
