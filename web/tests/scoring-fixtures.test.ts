@@ -75,6 +75,43 @@ test('fixture: pool head-to-head resolves 2-way ties when all matches exist', as
   assert.equal(game8.results.d.place, 4);
 });
 
+test('pool: when schedule exists but not all matches are entered, do not award places/points yet', async () => {
+  const { createEmptyScoringDocumentV1 } = await import('../lib/scoring-model');
+  const { generateRoundRobinSchedule } = await import('../lib/pool-schedule');
+
+  const doc = createEmptyScoringDocumentV1({
+    eventId: 'fixture-pool-in-progress',
+    year: 2026,
+    status: 'draft',
+    participants: [
+      { personId: 'a', displayName: 'Alpha' },
+      { personId: 'b', displayName: 'Bravo' },
+      { personId: 'c', displayName: 'Charlie' }
+    ],
+    eventMeta: {
+      competitorOrder: ['a', 'b', 'c'],
+      poolTables: [1],
+      poolSchedule: generateRoundRobinSchedule({ competitorOrder: ['a', 'b', 'c'], poolTables: [1] })
+    }
+  });
+
+  // Only one match entered (others still pending)
+  doc.poolMatches = [
+    { round: 1, a: 'b', b: 'c', table: 1, winner8Ball: 'b', winner9Ball: 'b' }
+  ];
+
+  const next = recomputeDocumentDerivedFields({ doc, pointsSchedule: POINTS_SCHEDULE });
+  const game8 = getGame(next, 'pool-1');
+
+  assert.equal(game8.results.b.raw, 1);
+  assert.equal(game8.results.c.raw, 0);
+
+  for (const pid of ['a', 'b', 'c'] as const) {
+    assert.equal(game8.results[pid].place, null);
+    assert.equal(game8.results[pid].points, null);
+  }
+});
+
 test('fixture: duplicate places in darts yield null points for duplicated entries', async () => {
   const doc = await loadFixture('duplicate-places.json');
   const next = recomputeDocumentDerivedFields({ doc, pointsSchedule: POINTS_SCHEDULE });

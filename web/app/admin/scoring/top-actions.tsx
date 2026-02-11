@@ -46,6 +46,7 @@ export default function ActionsBar() {
         Editing: <code>{eventId}</code> ({year}) • Status: <b>{doc.status}</b> • Storage:{' '}
         <b>{backend ? 'AWS' : 'localStorage'}</b>
         {backend ? <span style={{ opacity: 0.9 }}> ({isAuthed ? 'authed' : 'not logged in'})</span> : null}
+        {backend && !isAuthed ? <span style={{ marginLeft: 10, color: '#b00020' }}>Login required to load/save/publish.</span> : null}
         {flash && (
           <span style={{ marginLeft: 10, color: '#1b5e20' }}>
             {flash.message}
@@ -67,6 +68,7 @@ export default function ActionsBar() {
           )
         ) : null}
         <button
+          disabled={backend && !isAuthed}
           onClick={async () => {
             try {
               await onSaveDraft();
@@ -79,6 +81,7 @@ export default function ActionsBar() {
           Save TRI
         </button>
         <button
+          disabled={backend && !isAuthed}
           onClick={async () => {
             try {
               await onPublish();

@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
+import { getAccessToken } from '../../../lib/cognito-auth';
+import { hasBackendConfig } from '../../../lib/runtime-config';
 
 import { useScoring } from './scoring-context';
 
@@ -28,6 +31,9 @@ export default function AdminScoringClient() {
   const [newPersonId, setNewPersonId] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
+
+  const backend = useMemo(() => hasBackendConfig(), []);
+  const authed = !backend || Boolean(getAccessToken());
 
   const participants = doc.participants;
 
@@ -141,6 +147,7 @@ export default function AdminScoringClient() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={onNewDoc}>New TRI</button>
           <button
+            disabled={backend && !authed}
             onClick={async () => {
               try {
                 await onLoadDraft();
@@ -154,6 +161,7 @@ export default function AdminScoringClient() {
             Load TRI
           </button>
           <button
+            disabled={backend && !authed}
             onClick={async () => {
               try {
                 await onSaveDraft();
@@ -167,6 +175,7 @@ export default function AdminScoringClient() {
             Save TRI
           </button>
           <button
+            disabled={backend && !authed}
             onClick={async () => {
               try {
                 await onPublish();
@@ -179,6 +188,7 @@ export default function AdminScoringClient() {
           >
             Publish
           </button>
+          {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to load/save/publish.</span> : null}
           {flash && <span style={{ fontSize: 12, color: '#1b5e20' }}>{flash}</span>}
         </div>
 
