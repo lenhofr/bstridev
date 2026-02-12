@@ -380,6 +380,91 @@ input:focus, select:focus, textarea:focus, button:focus {
   gap: 12px;
 }
 
+.bstTopBanner {
+  position: fixed;
+  top: 56px; /* below the site topbar */
+  left: 0;
+  right: 0;
+  z-index: 9000; /* allow nav dropdowns to float above */
+  padding: 10px 14px;
+}
+
+.bstTopBannerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 650;
+  background: rgba(0, 0, 0, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+}
+
+.bstTopBannerIcon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.bstTopBannerMessage {
+  flex: 1;
+}
+
+.bstTopBannerClose {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.bstTopBannerClose:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.bstTopBanner[data-tone='success'] .bstTopBannerInner {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(27, 94, 32, 0.22);
+  border-color: rgba(27, 94, 32, 0.45);
+}
+
+.bstTopBanner[data-tone='success'] .bstTopBannerIcon {
+  background: rgba(27, 94, 32, 0.35);
+  border-color: rgba(27, 94, 32, 0.55);
+}
+
+.bstTopBanner[data-tone='error'] .bstTopBannerInner {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(176, 0, 32, 0.22);
+  border-color: rgba(176, 0, 32, 0.45);
+}
+
+.bstTopBanner[data-tone='error'] .bstTopBannerIcon {
+  background: rgba(176, 0, 32, 0.35);
+  border-color: rgba(176, 0, 32, 0.55);
+}
+
+.bstTopBanner[data-tone='info'] .bstTopBannerInner {
+  color: rgba(255, 255, 255, 0.92);
+}
+
 ul.bullets {
   margin: 0;
   padding-left: 18px;

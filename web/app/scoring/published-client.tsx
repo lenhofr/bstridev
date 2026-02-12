@@ -280,7 +280,7 @@ export default function PublishedScoringClient() {
         Published Results
       </h1>
       <p className="kicker" style={{ marginTop: 0 }}>
-        Loads from the AWS scoring API when configured; otherwise uses localStorage.
+        Running results...
       </p>
 
       <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

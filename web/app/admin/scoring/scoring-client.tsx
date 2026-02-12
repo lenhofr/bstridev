@@ -24,12 +24,12 @@ export default function AdminScoringClient() {
     updateParticipantDisplayName,
     deleteParticipant,
     setEventMeta,
-    setPoolMatches
+    setPoolMatches,
+    setFlash
   } = useScoring();
 
   const [newPersonId, setNewPersonId] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
-  const [flash, setFlash] = useState<string | null>(null);
 
   const [availableDocs, setAvailableDocs] = useState<TriathlonDocSummary[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
@@ -72,25 +72,25 @@ export default function AdminScoringClient() {
       setSelectedDocKey('');
       closeTriathlonDialog();
     } catch (e) {
-      setFlashMsg((e as Error)?.message ?? String(e));
+      setFlashMsg((e as Error)?.message ?? String(e), 'error');
     }
   }
 
   function onCreateNewFromDialog() {
     const nextEventId = createEventId.trim();
     if (!nextEventId) {
-      setFlashMsg('Triathlon name is required');
+      setFlashMsg('Triathlon name is required', 'error');
       return;
     }
     if (!createYear || Number.isNaN(createYear)) {
-      setFlashMsg('Year is required');
+      setFlashMsg('Year is required', 'error');
       return;
     }
     if (!confirm('Create a new triathlon draft? This will replace your current in-memory draft.')) return;
     onNewDocFor({ eventId: nextEventId, year: createYear });
     setDocsYearFilter(createYear);
     setSelectedDocKey('');
-    setFlashMsg('Created new draft');
+    setFlashMsg('Created new draft', 'success');
     closeTriathlonDialog();
   }
 
@@ -115,8 +115,7 @@ export default function AdminScoringClient() {
         setAvailableDocs(listLocalStorageTriathlonDocs({ year: nextYear }));
       }
     } catch (e) {
-      setFlash((e as Error)?.message ?? String(e));
-      setTimeout(() => setFlash(null), 2500);
+      setFlashMsg((e as Error)?.message ?? String(e), 'error');
     } finally {
       setDocsLoading(false);
     }
@@ -149,7 +148,7 @@ export default function AdminScoringClient() {
             publishedAt: null,
             publishedBy: null
           });
-          setFlashMsg('Loaded draft');
+          setFlashMsg('Loaded draft', 'success');
           return;
         }
 
@@ -164,7 +163,7 @@ export default function AdminScoringClient() {
           publishedAt: null,
           publishedBy: null
         });
-        setFlashMsg('Loaded published → draft');
+        setFlashMsg('Loaded published → draft', 'success');
         return;
       }
 
@@ -182,9 +181,9 @@ export default function AdminScoringClient() {
         publishedAt: null,
         publishedBy: null
       });
-      setFlashMsg(selected.kind === 'draft' ? 'Loaded draft' : 'Loaded published → draft');
+      setFlashMsg(selected.kind === 'draft' ? 'Loaded draft' : 'Loaded published → draft', 'success');
     } catch (e) {
-      setFlashMsg((e as Error)?.message ?? String(e));
+      setFlashMsg((e as Error)?.message ?? String(e), 'error');
     }
   }
 
@@ -214,9 +213,8 @@ export default function AdminScoringClient() {
     return (doc.eventMeta?.poolSchedule?.rounds?.length ?? 0) > 0 || doc.poolMatches.length > 0;
   }
 
-  function setFlashMsg(msg: string) {
-    setFlash(msg);
-    setTimeout(() => setFlash(null), 2500);
+  function setFlashMsg(msg: string, tone: 'success' | 'error' | 'info' = 'info') {
+    setFlash({ message: msg, tone, at: Date.now() });
   }
 
   function onResetPoolSchedule() {
@@ -225,7 +223,7 @@ export default function AdminScoringClient() {
     const base = ensureMetaBase();
     setPoolMatches([]);
     setEventMeta({ ...base, poolSchedule: { rounds: [] } });
-    setFlashMsg('Reset pool schedule/matches');
+    setFlashMsg('Reset pool schedule/matches', 'success');
   }
 
   function setOrder(nextOrder: string[]) {
@@ -233,7 +231,7 @@ export default function AdminScoringClient() {
     const base = ensureMetaBase();
     setPoolMatches([]);
     setEventMeta({ ...base, competitorOrder: nextOrder, poolSchedule: { rounds: [] } });
-    setFlashMsg('Updated competitor order');
+    setFlashMsg('Updated competitor order', 'success');
   }
 
   function moveInOrder(personId: string, dir: -1 | 1) {
@@ -252,7 +250,7 @@ export default function AdminScoringClient() {
     if (!personId) return;
     const existing = participants.find((p) => p.personId.toLowerCase() === personId.toLowerCase());
     if (existing) {
-      setFlashMsg(`Competitor already exists: ${existing.personId}`);
+      setFlashMsg(`Competitor already exists: ${existing.personId}`, 'error');
       return;
     }
 
@@ -278,8 +276,7 @@ export default function AdminScoringClient() {
       publishedAt: null,
       publishedBy: null
     });
-    setFlash(`Loaded fixture: ${label}`);
-    setTimeout(() => setFlash(null), 2500);
+    setFlashMsg(`Loaded fixture: ${label}`, 'success');
   }
 
   return (
@@ -297,7 +294,6 @@ export default function AdminScoringClient() {
           </button>
         </div>
         <div style={{ fontSize: 12, opacity: 0.85 }}>Select an existing triathlon (draft/published) or create a new draft.</div>
-        {flash ? <div style={{ fontSize: 12, color: flash.toLowerCase().includes('error') ? '#b00020' : '#1b5e20' }}>{flash}</div> : null}
       </div>
 
       <dialog ref={dialogRef} className="bstDialog">
@@ -456,7 +452,7 @@ export default function AdminScoringClient() {
                           )
                         ) {
                           deleteParticipant(p.personId);
-                          setFlashMsg('Deleted competitor');
+                          setFlashMsg('Deleted competitor', 'success');
                         }
                       }}
                     >

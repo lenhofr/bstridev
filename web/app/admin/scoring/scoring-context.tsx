@@ -14,6 +14,8 @@ const LS_PUBLISHED_PREFIX = 'bstri:scoring:published:';
 
 const DEFAULT_POINTS_SCHEDULE = { ...OPTIONAL_4TH_5TH_POINTS, first: 3, second: 2, third: 1 };
 
+export type Flash = { message: string; tone: 'success' | 'error' | 'info'; at: number } | null;
+
 function makeNewDoc(params: {
   eventId: string;
   year: number;
@@ -51,6 +53,9 @@ type ScoringCtx = {
   doc: ScoringDocumentV1;
   draftKey: string;
   publishedKey: string;
+
+  flash: Flash;
+  setFlash: (flash: Flash) => void;
 
   setEventId: (eventId: string) => void;
   setYear: (year: number) => void;
@@ -94,9 +99,16 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     makeNewDoc({ eventId: 'triathlon-2026', year: 2026, participants: [], updatedAt: '1970-01-01T00:00:00.000Z' })
   );
   const [suppressNextAutoLoadKey, setSuppressNextAutoLoadKey] = useState<string | null>(null);
+  const [flash, setFlash] = useState<Flash>(null);
 
   const draftKey = useMemo(() => `${LS_DRAFT_PREFIX}${eventId}`, [eventId]);
   const publishedKey = useMemo(() => `${LS_PUBLISHED_PREFIX}${eventId}`, [eventId]);
+
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 4500);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   useEffect(() => {
     if (suppressNextAutoLoadKey === draftKey) {
@@ -375,6 +387,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         doc,
         draftKey,
         publishedKey,
+        flash,
+        setFlash,
         setEventId,
         setYear,
         onNewDoc,
