@@ -43,6 +43,10 @@ function isListDocsPath(p) {
   return p === '/scoring/docs';
 }
 
+function isActiveTriathlonPath(p) {
+  return p === '/scoring/active';
+}
+
 async function getDoc(tableName, eventId, kind) {
   const res = await ddb.send(
     new GetCommand({
@@ -95,8 +99,28 @@ exports.handler = async (event) => {
   const scoring = getEventIdFromPath(p);
   const publishEventId = isPublishPath(p);
   const listDocs = isListDocsPath(p);
+  const activeTriathlon = isActiveTriathlonPath(p);
 
   try {
+    if (activeTriathlon && m === 'GET') {
+      const item = await getDoc(tableName, '__config', 'active');
+      const activeEventId = item?.doc?.activeEventId;
+      return json(200, { activeEventId: typeof activeEventId === 'string' && activeEventId ? activeEventId : null });
+    }
+
+    if (activeTriathlon && m === 'PUT') {
+      const admin = getAdminIdentity(event);
+      if (!admin) return json(401, { error: 'Unauthorized' });
+
+      const body = event.body ? JSON.parse(event.body) : null;
+      const activeEventId = body?.activeEventId;
+      if (activeEventId != null && (typeof activeEventId !== 'string' || !activeEventId.trim()))
+        return json(400, { error: 'activeEventId must be a non-empty string or null' });
+
+      await putDoc(tableName, '__config', 'active', { activeEventId: activeEventId == null ? null : activeEventId.trim() }, admin);
+      return json(200, { ok: true });
+    }
+
     if (listDocs && m === 'GET') {
       const admin = getAdminIdentity(event);
       if (!admin) return json(401, { error: 'Unauthorized' });

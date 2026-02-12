@@ -352,11 +352,16 @@ export default function PoolScoringClient() {
             const finalized = Object.prototype.hasOwnProperty.call(doc, 'finalizedGames') ? Boolean(doc.finalizedGames?.[game8.gameId]) : true;
             return (
               <h4 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span>8-ball</span>
-                <button onClick={() => setGameFinalized(game8.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
-                  {finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                <span>
+                  8-ball <span style={{ fontSize: 12, opacity: 0.8 }}>({finalized ? 'complete' : 'not complete'})</span>
+                </span>
+                <button
+                  title={finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                  onClick={() => setGameFinalized(game8.gameId, !finalized)}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {finalized ? 'Reopen' : 'Complete'}
                 </button>
-                <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
               </h4>
             );
           })()}
@@ -466,11 +471,16 @@ export default function PoolScoringClient() {
             const finalized = Object.prototype.hasOwnProperty.call(doc, 'finalizedGames') ? Boolean(doc.finalizedGames?.[game9.gameId]) : true;
             return (
               <h4 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span>9-ball</span>
-                <button onClick={() => setGameFinalized(game9.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
-                  {finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                <span>
+                  9-ball <span style={{ fontSize: 12, opacity: 0.8 }}>({finalized ? 'complete' : 'not complete'})</span>
+                </span>
+                <button
+                  title={finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                  onClick={() => setGameFinalized(game9.gameId, !finalized)}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {finalized ? 'Reopen' : 'Complete'}
                 </button>
-                <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
               </h4>
             );
           })()}
@@ -580,11 +590,16 @@ export default function PoolScoringClient() {
             const finalized = Object.prototype.hasOwnProperty.call(doc, 'finalizedGames') ? Boolean(doc.finalizedGames?.[gameRun.gameId]) : true;
             return (
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span>Run</span>
-                <button onClick={() => setGameFinalized(gameRun.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
-                  {finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                <span>
+                  Run <span style={{ fontSize: 12, opacity: 0.8 }}>({finalized ? 'complete' : 'not complete'})</span>
+                </span>
+                <button
+                  title={finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                  onClick={() => setGameFinalized(gameRun.gameId, !finalized)}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {finalized ? 'Reopen' : 'Complete'}
                 </button>
-                <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
               </h3>
             );
           })()}
