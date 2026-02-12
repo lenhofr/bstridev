@@ -97,11 +97,16 @@ export default function BowlingScoringClient() {
         return (
           <section key={g.gameId} style={{ marginTop: 12 }}>
             <h3 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span>{g.label}</span>
-              <button onClick={() => setGameFinalized(g.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
-                {finalized ? 'Mark game incomplete' : 'Mark game complete'}
+              <span>
+                {g.label} <span style={{ fontSize: 12, opacity: 0.8 }}>({finalized ? 'complete' : 'not complete'})</span>
+              </span>
+              <button
+                title={finalized ? 'Mark game incomplete' : 'Mark game complete'}
+                onClick={() => setGameFinalized(g.gameId, !finalized)}
+                style={{ marginLeft: 'auto' }}
+              >
+                {finalized ? 'Reopen' : 'Complete'}
               </button>
-              <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
             </h3>
             {dupPlaces.length > 0 && (
               <p className="kicker" style={{ marginTop: 0, color: '#b00020' }}>

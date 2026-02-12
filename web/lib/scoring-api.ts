@@ -7,6 +7,10 @@ export type ScoringDocSummary = {
   updatedAt: string | null;
 };
 
+export type ActiveTriathlonConfig = {
+  activeEventId: string | null;
+};
+
 export async function apiGetPublished(params: { apiBaseUrl: string; eventId: string }): Promise<ScoringDocumentV1> {
   const res = await fetch(`${params.apiBaseUrl}/events/${encodeURIComponent(params.eventId)}/scoring/published`);
   if (!res.ok) throw new Error(`Failed to load published doc (${res.status})`);
@@ -67,4 +71,27 @@ export async function apiListDocs(params: {
   });
   if (!res.ok) throw new Error(`Failed to list docs (${res.status})`);
   return (await res.json()) as ScoringDocSummary[];
+}
+
+export async function apiGetActiveTriathlon(params: { apiBaseUrl: string }): Promise<ActiveTriathlonConfig> {
+  const res = await fetch(`${params.apiBaseUrl}/scoring/active`);
+  if (!res.ok) throw new Error(`Failed to load active triathlon (${res.status})`);
+  return (await res.json()) as ActiveTriathlonConfig;
+}
+
+export async function apiPutActiveTriathlon(params: {
+  apiBaseUrl: string;
+  accessToken: string;
+  activeEventId: string | null;
+}): Promise<{ ok: true }> {
+  const res = await fetch(`${params.apiBaseUrl}/scoring/active`, {
+    method: 'PUT',
+    headers: {
+      authorization: `Bearer ${params.accessToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ activeEventId: params.activeEventId })
+  });
+  if (!res.ok) throw new Error(`Failed to set active triathlon (${res.status})`);
+  return (await res.json()) as { ok: true };
 }

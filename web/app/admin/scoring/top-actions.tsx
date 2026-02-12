@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { getAccessToken, handleOAuthCallback, logout, startLogin } from '../../../lib/cognito-auth';
-import { hasBackendConfig } from '../../../lib/runtime-config';
+import { apiPutActiveTriathlon } from '../../../lib/scoring-api';
+import { setLocalActiveEventId } from '../../../lib/active-triathlon';
+import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
 
 import { useScoring } from './scoring-context';
 
@@ -46,7 +48,7 @@ export default function ActionsBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const saveDisabled = backend && !isAuthed;
+  const saveDisabled = !eventId.trim() || (backend && !isAuthed);
 
   return (
     <>
@@ -110,7 +112,7 @@ export default function ActionsBar() {
           ) : null}
           <button
             disabled={saveDisabled}
-            title={saveDisabled ? 'Login required' : undefined}
+            title={saveDisabled ? (!eventId.trim() ? 'Select a triathlon first' : 'Login required') : undefined}
             onClick={async () => {
               try {
                 await onSaveDraft();
@@ -122,9 +124,31 @@ export default function ActionsBar() {
           >
             Save
           </button>
+
+          <button
+            disabled={!eventId.trim() || (backend && !isAuthed)}
+            title={!eventId.trim() ? 'Select a triathlon first' : backend && !isAuthed ? 'Login required' : undefined}
+            onClick={async () => {
+              try {
+                if (backend) {
+                  const accessToken = getAccessToken();
+                  if (!accessToken) throw new Error('Not logged in (Cognito)');
+                  if (!runtimeConfig.scoringApiBaseUrl) throw new Error('Missing scoringApiBaseUrl');
+                  await apiPutActiveTriathlon({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl, accessToken, activeEventId: eventId });
+                } else {
+                  setLocalActiveEventId(eventId);
+                }
+                setFlash({ message: 'Set as active triathlon', tone: 'success', at: Date.now() });
+              } catch (e) {
+                setFlash({ message: (e as Error)?.message ?? String(e), tone: 'error', at: Date.now() });
+              }
+            }}
+          >
+            Set Active
+          </button>
           <button
             disabled={saveDisabled}
-            title={saveDisabled ? 'Login required' : undefined}
+            title={saveDisabled ? (!eventId.trim() ? 'Select a triathlon first' : 'Login required') : undefined}
             onClick={async () => {
               try {
                 await onPublish();

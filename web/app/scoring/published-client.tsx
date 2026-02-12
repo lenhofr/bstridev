@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { apiGetPublished } from '../../lib/scoring-api';
+import { apiGetActiveTriathlon, apiGetPublished } from '../../lib/scoring-api';
 import { hasBackendConfig, runtimeConfig } from '../../lib/runtime-config';
 import type { Game, ScoringDocumentV1, SubEvent } from '../../lib/scoring-model';
 import { emptyGameResult } from '../../lib/scoring-rules';
+import { getLocalActiveEventId } from '../../lib/active-triathlon';
 import { listLocalStorageTriathlonDocs, type TriathlonDocSummary } from '../../lib/triathlon-docs';
 
 const LS_PUBLISHED_PREFIX = 'bstri:scoring:published:';
@@ -193,7 +194,7 @@ function SubEventSection(props: {
 }
 
 export default function PublishedScoringClient() {
-  const [eventId, setEventId] = useState('triathlon-2026');
+  const [eventId, setEventId] = useState('');
   const publishedKey = useMemo(() => `${LS_PUBLISHED_PREFIX}${eventId}`, [eventId]);
 
   const [doc, setDoc] = useState<ScoringDocumentV1 | null>(null);
@@ -250,11 +251,28 @@ export default function PublishedScoringClient() {
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
   const [totalsSort, setTotalsSort] = useState<SortSpec>({ key: 'triathlon', dir: 'desc' });
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const activeEventId = hasBackendConfig()
+          ? (await apiGetActiveTriathlon({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl! })).activeEventId
+          : getLocalActiveEventId();
+        if (!activeEventId) return;
+        setEventId(activeEventId);
+        await onLoad(activeEventId);
+      } catch {
+        // If active triathlon isn't configured yet, do nothing.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function onLoad(nextEventId?: string) {
-    const id = nextEventId ?? eventId;
+    const id = (nextEventId ?? eventId).trim();
+    if (!id) return;
     try {
       if (hasBackendConfig()) {
-        const loaded = await apiGetPublished({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId });
+        const loaded = await apiGetPublished({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId: id });
         setError(null);
         setDoc(loaded);
         return;

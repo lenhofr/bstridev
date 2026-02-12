@@ -4,8 +4,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { EventMeta, Participant, PoolMatchResult, ScoringDocumentV1 } from '../../../lib/scoring-model';
 import { CANONICAL_GAME_IDS, createEmptyScoringDocumentV1 } from '../../../lib/scoring-model';
-import { apiGetDraft, apiPublish, apiPutDraft } from '../../../lib/scoring-api';
+import { apiGetActiveTriathlon, apiGetDraft, apiPublish, apiPutDraft } from '../../../lib/scoring-api';
 import { getAccessToken } from '../../../lib/cognito-auth';
+import { getLocalActiveEventId, parseYearFromEventId } from '../../../lib/active-triathlon';
 import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
 import { emptyGameResult, OPTIONAL_4TH_5TH_POINTS, recomputeDocumentDerivedFields } from '../../../lib/scoring-rules';
 
@@ -91,12 +92,12 @@ export function useScoring() {
 }
 
 export function ScoringProvider(props: { children: React.ReactNode }) {
-  const [eventId, setEventIdState] = useState('triathlon-2026');
+  const [eventId, setEventIdState] = useState('');
   const [year, setYearState] = useState(2026);
 
   // Avoid hydration mismatches: deterministic initial doc during SSR.
   const [doc, setDoc] = useState<ScoringDocumentV1>(() =>
-    makeNewDoc({ eventId: 'triathlon-2026', year: 2026, participants: [], updatedAt: '1970-01-01T00:00:00.000Z' })
+    makeNewDoc({ eventId: '', year: 2026, participants: [], updatedAt: '1970-01-01T00:00:00.000Z' })
   );
   const [suppressNextAutoLoadKey, setSuppressNextAutoLoadKey] = useState<string | null>(null);
   const [flash, setFlash] = useState<Flash>(null);
@@ -116,6 +117,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
       return;
     }
 
+    if (!eventId.trim()) return;
+
     const loaded = loadDoc(draftKey);
     if (loaded) {
       const next = recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
@@ -126,10 +129,12 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
 
     setDoc(makeNewDoc({ eventId, year, participants: [] }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftKey]);
+  }, [draftKey, eventId, year]);
 
   function setEventId(next: string) {
     setEventIdState(next);
+    const y = parseYearFromEventId(next);
+    if (y != null) setYearState(y);
   }
 
   function setYear(next: number) {
@@ -149,7 +154,40 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
     setDoc(makeNewDoc({ eventId: params.eventId, year: params.year, participants: [] }));
   }
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const activeEventId = hasBackendConfig()
+          ? (await apiGetActiveTriathlon({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl! })).activeEventId
+          : getLocalActiveEventId();
+        if (!activeEventId) return;
+
+        setEventIdState(activeEventId);
+        const y = parseYearFromEventId(activeEventId);
+        if (y != null) setYearState(y);
+
+        if (hasBackendConfig()) {
+          const accessToken = getAccessToken();
+          if (!accessToken) return;
+          try {
+            const loaded = await apiGetDraft({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId: activeEventId, accessToken });
+            const next = recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
+            setDoc(next);
+            setYearState(next.year);
+          } catch {
+            // No draft (404) or other issue; leave doc as-is.
+          }
+        }
+      } catch {
+        // If active triathlon isn't configured yet, do nothing.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function onLoadDraft() {
+    if (!eventId.trim()) return;
+
     if (hasBackendConfig()) {
       const accessToken = getAccessToken();
       if (!accessToken) throw new Error('Not logged in (Cognito)');
@@ -165,6 +203,7 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   }
 
   async function onSaveDraft() {
+    if (!eventId.trim()) throw new Error('No triathlon selected');
     const next = { ...doc, status: 'draft' as const, updatedAt: new Date().toISOString() };
 
     if (hasBackendConfig()) {
@@ -180,6 +219,8 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   }
 
   async function onPublish() {
+    if (!eventId.trim()) throw new Error('No triathlon selected');
+
     if (hasBackendConfig()) {
       const accessToken = getAccessToken();
       if (!accessToken) throw new Error('Not logged in (Cognito)');
