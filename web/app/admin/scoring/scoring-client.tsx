@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getAccessToken } from '../../../lib/cognito-auth';
 import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
@@ -18,8 +18,7 @@ export default function AdminScoringClient() {
     publishedKey,
     setEventId,
     setYear,
-    onNewDoc,
-    onLoadDraft,
+    onNewDocFor,
     importDoc,
     addParticipant,
     updateParticipantDisplayName,
@@ -34,8 +33,67 @@ export default function AdminScoringClient() {
 
   const [availableDocs, setAvailableDocs] = useState<TriathlonDocSummary[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
-  const [docsYearFilter, setDocsYearFilter] = useState<number | null>(null);
+  const [docsYearFilter, setDocsYearFilter] = useState<number | null>(year);
   const [selectedDocKey, setSelectedDocKey] = useState<string>('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [dialogTab, setDialogTab] = useState<'open' | 'create'>('open');
+  const [docSearch, setDocSearch] = useState('');
+  const [createEventId, setCreateEventId] = useState(eventId);
+  const [createYear, setCreateYear] = useState(year);
+
+  const filteredDocs = useMemo(() => {
+    const q = docSearch.trim().toLowerCase();
+    if (!q) return availableDocs;
+    return availableDocs.filter((d) => d.eventId.toLowerCase().includes(q));
+  }, [availableDocs, docSearch]);
+
+  const selectedDoc = useMemo(() => filteredDocs.find((d) => `${d.kind}:${d.eventId}` === selectedDocKey), [filteredDocs, selectedDocKey]);
+
+  function openTriathlonDialog(nextTab: 'open' | 'create' = 'open') {
+    setDialogTab(nextTab);
+    setDocSearch('');
+    setCreateEventId(eventId);
+    setCreateYear(year);
+    setDocsYearFilter(year);
+    void refreshDocs(year);
+    dialogRef.current?.showModal();
+  }
+
+  function closeTriathlonDialog() {
+    dialogRef.current?.close();
+  }
+
+  async function onOpenSelectedFromDialog() {
+    if (!selectedDoc) return;
+    if (!confirm('Switching triathlons will replace your current in-memory draft. Save first if needed. Continue?')) return;
+    try {
+      setDocsYearFilter(selectedDoc.year);
+      await onOpenDoc(selectedDoc);
+      setSelectedDocKey('');
+      closeTriathlonDialog();
+    } catch (e) {
+      setFlashMsg((e as Error)?.message ?? String(e));
+    }
+  }
+
+  function onCreateNewFromDialog() {
+    const nextEventId = createEventId.trim();
+    if (!nextEventId) {
+      setFlashMsg('Triathlon name is required');
+      return;
+    }
+    if (!createYear || Number.isNaN(createYear)) {
+      setFlashMsg('Year is required');
+      return;
+    }
+    if (!confirm('Create a new triathlon draft? This will replace your current in-memory draft.')) return;
+    onNewDocFor({ eventId: nextEventId, year: createYear });
+    setDocsYearFilter(createYear);
+    setSelectedDocKey('');
+    setFlashMsg('Created new draft');
+    closeTriathlonDialog();
+  }
+
 
   const backend = useMemo(() => hasBackendConfig(), []);
   const authed = !backend || Boolean(getAccessToken());
@@ -64,8 +122,7 @@ export default function AdminScoringClient() {
     }
   }
 
-  async function onLoadSelected() {
-    const selected = availableDocs.find((d) => `${d.kind}:${d.eventId}` === selectedDocKey);
+  async function onOpenDoc(selected: TriathlonDocSummary) {
     if (!selected) return;
 
     try {
@@ -131,10 +188,6 @@ export default function AdminScoringClient() {
     }
   }
 
-  useEffect(() => {
-    setDocsYearFilter(year);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     refreshDocs(docsYearFilter);
@@ -234,98 +287,119 @@ export default function AdminScoringClient() {
       <h2>Setup</h2>
 
       <div className="card" style={{ display: 'grid', gap: 10 }}>
-        <div style={{ display: 'grid', gap: 6 }}>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>Pick an existing TRI (optional)</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              Year filter
-              <input
-                type="number"
-                value={docsYearFilter ?? ''}
-                onChange={(e) => setDocsYearFilter(e.target.value ? Number(e.target.value) : null)}
-                style={{ width: 90 }}
-              />
-            </label>
-            <button disabled={docsLoading || (backend && !authed)} onClick={() => refreshDocs(docsYearFilter)}>
-              {docsLoading ? 'Loading…' : 'Refresh list'}
-            </button>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Found: {availableDocs.length}</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>Triathlon</div>
+          <div>
+            <code>{eventId}</code> <span style={{ opacity: 0.7 }}>({year})</span>
           </div>
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select
-              value={selectedDocKey}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSelectedDocKey(v);
-                const found = availableDocs.find((d) => `${d.kind}:${d.eventId}` === v);
-                if (found) {
-                  setEventId(found.eventId);
-                  setYear(found.year);
-                  setDocsYearFilter(found.year);
-                }
-              }}
-            >
-              <option value="">— Select —</option>
-              {availableDocs.map((d) => (
-                <option key={`${d.kind}:${d.eventId}`} value={`${d.kind}:${d.eventId}`}>
-                  {d.eventId} ({d.year}) • {d.kind} • {d.updatedAt ?? '-'}
-                </option>
-              ))}
-            </select>
-            <button
-              disabled={!selectedDocKey || (backend && !authed && selectedDocKey.startsWith('draft:'))}
-              onClick={onLoadSelected}
-            >
-              Load selected
-            </button>
-            {backend && !authed ? (
-              <span style={{ fontSize: 12, color: '#b00020' }}>Login required to list/load drafts.</span>
-            ) : null}
-          </div>
-        </div>
-
-        <hr style={{ width: '100%', opacity: 0.2 }} />
-
-        <label>
-          Triathlon Name{' '}
-          <input value={eventId} onChange={(e) => setEventId(e.target.value)} style={{ marginLeft: 8 }} />
-        </label>
-        <label>
-          Year{' '}
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => {
-              const y = Number(e.target.value);
-              setYear(y);
-              setDocsYearFilter(y);
-            }}
-            style={{ marginLeft: 8 }}
-          />
-        </label>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button onClick={onNewDoc}>Create new</button>
-          <button
-            disabled={backend && !authed}
-            title={backend && !authed ? 'Login required' : undefined}
-            onClick={async () => {
-              try {
-                await onLoadDraft();
-                setFlash('Loaded');
-              } catch (e) {
-                setFlash((e as Error)?.message ?? String(e));
-              }
-              setTimeout(() => setFlash(null), 2500);
-            }}
-          >
-            Load draft
+          <button style={{ marginLeft: 'auto' }} onClick={() => openTriathlonDialog('open')}>
+            Select / Create…
           </button>
-          {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to load drafts.</span> : null}
-          {flash && <span style={{ fontSize: 12, color: '#1b5e20' }}>{flash}</span>}
         </div>
+        <div style={{ fontSize: 12, opacity: 0.85 }}>Select an existing triathlon (draft/published) or create a new draft.</div>
+        {flash ? <div style={{ fontSize: 12, color: flash.toLowerCase().includes('error') ? '#b00020' : '#1b5e20' }}>{flash}</div> : null}
       </div>
+
+      <dialog
+        ref={dialogRef}
+        style={{
+          width: 'min(760px, 96vw)',
+          border: '1px solid rgba(0,0,0,0.18)',
+          borderRadius: 12,
+          padding: 0
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid rgba(0,0,0,0.10)' }}>
+          <b>Select triathlon</b>
+          <button style={{ marginLeft: 'auto' }} onClick={closeTriathlonDialog}>
+            Close
+          </button>
+        </div>
+
+        <div style={{ padding: 14, display: 'grid', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setDialogTab('open')}
+              style={dialogTab === 'open' ? { fontWeight: 700 } : undefined}
+            >
+              Open existing
+            </button>
+            <button
+              onClick={() => setDialogTab('create')}
+              style={dialogTab === 'create' ? { fontWeight: 700 } : undefined}
+            >
+              Create new
+            </button>
+          </div>
+
+          {dialogTab === 'open' ? (
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  Year
+                  <input
+                    type="number"
+                    value={docsYearFilter ?? ''}
+                    onChange={(e) => setDocsYearFilter(e.target.value ? Number(e.target.value) : null)}
+                    style={{ width: 90 }}
+                  />
+                </label>
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  Search
+                  <input value={docSearch} onChange={(e) => setDocSearch(e.target.value)} placeholder="eventId contains…" />
+                </label>
+                <button disabled={docsLoading || (backend && !authed)} onClick={() => refreshDocs(docsYearFilter)}>
+                  {docsLoading ? 'Loading…' : 'Refresh'}
+                </button>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>Found: {filteredDocs.length}</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select value={selectedDocKey} onChange={(e) => setSelectedDocKey(e.target.value)} style={{ minWidth: 360, maxWidth: '100%' }}>
+                  <option value="">— Select —</option>
+                  {filteredDocs.map((d) => (
+                    <option key={`${d.kind}:${d.eventId}`} value={`${d.kind}:${d.eventId}`}>
+                      {d.eventId} ({d.year}) • {d.kind} • {d.updatedAt ?? '-'}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  disabled={!selectedDoc || (backend && !authed && selectedDoc.kind === 'draft')}
+                  title={backend && !authed && selectedDoc?.kind === 'draft' ? 'Login required' : undefined}
+                  onClick={() => void onOpenSelectedFromDialog()}
+                >
+                  Open
+                </button>
+                {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to list/load drafts.</span> : null}
+              </div>
+
+              <div style={{ fontSize: 12, opacity: 0.85 }}>Opening a published doc loads it into a new draft.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div className="card" style={{ display: 'grid', gap: 8 }}>
+                <label>
+                  Triathlon Name
+                  <input value={createEventId} onChange={(e) => setCreateEventId(e.target.value)} style={{ marginLeft: 8 }} />
+                </label>
+                <label>
+                  Year
+                  <input
+                    type="number"
+                    value={createYear}
+                    onChange={(e) => setCreateYear(Number(e.target.value))}
+                    style={{ marginLeft: 8, width: 110 }}
+                  />
+                </label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button onClick={onCreateNewFromDialog}>Create draft</button>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.85 }}>Tip: you can save/publish from the actions bar after creating.</div>
+            </div>
+          )}
+        </div>
+      </dialog>
 
       <h3 style={{ marginTop: 18 }}>Competitors</h3>
       <p className="kicker" style={{ marginTop: 6 }}>
