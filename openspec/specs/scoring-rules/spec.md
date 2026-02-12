@@ -3,6 +3,18 @@
 ## Purpose
 Define the scoring and tie-break rules for the Bar Sports Triathlon games so the admin workflow can compute placings, points, and totals consistently.
 ## Requirements
+
+### Requirement: Finalization gates places/points
+The system SHALL only award places/points for a game when that game is marked finalized.
+
+#### Scenario: Not finalized
+- **GIVEN** a game is not finalized
+- **THEN** the system SHALL NOT award places/points for that game
+
+#### Scenario: Finalized
+- **WHEN** an admin finalizes a game
+- **THEN** the system SHALL compute and award places/points for that game
+
 ### Requirement: Bowling format
 The system SHALL define bowling scoring for the triathlon as three separate regulation games.
 
