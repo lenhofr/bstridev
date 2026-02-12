@@ -14,6 +14,8 @@ const LS_PUBLISHED_PREFIX = 'bstri:scoring:published:';
 
 const DEFAULT_POINTS_SCHEDULE = { ...OPTIONAL_4TH_5TH_POINTS, first: 3, second: 2, third: 1 };
 
+export type Flash = { message: string; tone: 'success' | 'error' | 'info'; at: number } | null;
+
 function makeNewDoc(params: {
   eventId: string;
   year: number;
@@ -52,10 +54,14 @@ type ScoringCtx = {
   draftKey: string;
   publishedKey: string;
 
+  flash: Flash;
+  setFlash: (flash: Flash) => void;
+
   setEventId: (eventId: string) => void;
   setYear: (year: number) => void;
 
   onNewDoc: () => void;
+  onNewDocFor: (params: { eventId: string; year: number }) => void;
   onLoadDraft: () => Promise<void>;
   onSaveDraft: () => Promise<void>;
   onPublish: () => Promise<void>;
@@ -92,11 +98,24 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
   const [doc, setDoc] = useState<ScoringDocumentV1>(() =>
     makeNewDoc({ eventId: 'triathlon-2026', year: 2026, participants: [], updatedAt: '1970-01-01T00:00:00.000Z' })
   );
+  const [suppressNextAutoLoadKey, setSuppressNextAutoLoadKey] = useState<string | null>(null);
+  const [flash, setFlash] = useState<Flash>(null);
 
   const draftKey = useMemo(() => `${LS_DRAFT_PREFIX}${eventId}`, [eventId]);
   const publishedKey = useMemo(() => `${LS_PUBLISHED_PREFIX}${eventId}`, [eventId]);
 
   useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 4500);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  useEffect(() => {
+    if (suppressNextAutoLoadKey === draftKey) {
+      setSuppressNextAutoLoadKey(null);
+      return;
+    }
+
     const loaded = loadDoc(draftKey);
     if (loaded) {
       const next = recomputeDocumentDerivedFields({ doc: loaded, pointsSchedule: DEFAULT_POINTS_SCHEDULE });
@@ -120,6 +139,14 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
 
   function onNewDoc() {
     setDoc(makeNewDoc({ eventId, year, participants: [] }));
+  }
+
+  function onNewDocFor(params: { eventId: string; year: number }) {
+    const nextDraftKey = `${LS_DRAFT_PREFIX}${params.eventId}`;
+    setSuppressNextAutoLoadKey(nextDraftKey);
+    setEventIdState(params.eventId);
+    setYearState(params.year);
+    setDoc(makeNewDoc({ eventId: params.eventId, year: params.year, participants: [] }));
   }
 
   async function onLoadDraft() {
@@ -360,9 +387,12 @@ export function ScoringProvider(props: { children: React.ReactNode }) {
         doc,
         draftKey,
         publishedKey,
+        flash,
+        setFlash,
         setEventId,
         setYear,
         onNewDoc,
+        onNewDocFor,
         onLoadDraft,
         onSaveDraft,
         onPublish,

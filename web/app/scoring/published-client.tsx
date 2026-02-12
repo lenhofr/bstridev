@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { apiGetPublished } from '../../lib/scoring-api';
 import { hasBackendConfig, runtimeConfig } from '../../lib/runtime-config';
 import type { Game, ScoringDocumentV1, SubEvent } from '../../lib/scoring-model';
 import { emptyGameResult } from '../../lib/scoring-rules';
+import { listLocalStorageTriathlonDocs, type TriathlonDocSummary } from '../../lib/triathlon-docs';
 
 const LS_PUBLISHED_PREFIX = 'bstri:scoring:published:';
 
@@ -206,10 +207,51 @@ export default function PublishedScoringClient() {
     return competitorOrder.map((pid) => participantsById.get(pid)).filter((p): p is (typeof participants)[number] => Boolean(p));
   }, [doc]);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [availableDocs, setAvailableDocs] = useState<TriathlonDocSummary[]>([]);
+  const [docsYearFilter, setDocsYearFilter] = useState<number | null>(null);
+  const [docSearch, setDocSearch] = useState('');
+  const [selectedDocKey, setSelectedDocKey] = useState('');
+
+  const filteredDocs = useMemo(() => {
+    const q = docSearch.trim().toLowerCase();
+    const docs = availableDocs.filter((d) => d.kind === 'published');
+    const filtered = docsYearFilter == null ? docs : docs.filter((d) => d.year == docsYearFilter);
+    if (!q) return filtered;
+    return filtered.filter((d) => d.eventId.toLowerCase().includes(q));
+  }, [availableDocs, docSearch, docsYearFilter]);
+
+  const selectedDoc = useMemo(
+    () => filteredDocs.find((d) => `${d.kind}:${d.eventId}` === selectedDocKey),
+    [filteredDocs, selectedDocKey]
+  );
+
+  function refreshDocs() {
+    setAvailableDocs(listLocalStorageTriathlonDocs({}));
+  }
+
+  function openPicker() {
+    refreshDocs();
+    dialogRef.current?.showModal();
+  }
+
+  function closePicker() {
+    dialogRef.current?.close();
+  }
+
+  async function onUseSelected() {
+    if (!selectedDoc) return;
+    setEventId(selectedDoc.eventId);
+    setSelectedDocKey('');
+    closePicker();
+    await onLoad(selectedDoc.eventId);
+  }
+
   const [sortByGame, setSortByGame] = useState<Record<string, SortSpec>>({});
   const [totalsSort, setTotalsSort] = useState<SortSpec>({ key: 'triathlon', dir: 'desc' });
 
-  async function onLoad() {
+  async function onLoad(nextEventId?: string) {
+    const id = nextEventId ?? eventId;
     try {
       if (hasBackendConfig()) {
         const loaded = await apiGetPublished({ apiBaseUrl: runtimeConfig.scoringApiBaseUrl!, eventId });
@@ -218,7 +260,7 @@ export default function PublishedScoringClient() {
         return;
       }
 
-      const loaded = loadPublishedDoc(publishedKey);
+      const loaded = loadPublishedDoc(`${LS_PUBLISHED_PREFIX}${id}`);
       if (!loaded) {
         setDoc(null);
         setError('No published doc found in localStorage for this Triathlon Name.');
@@ -238,19 +280,72 @@ export default function PublishedScoringClient() {
         Published Results
       </h1>
       <p className="kicker" style={{ marginTop: 0 }}>
-        Loads from the AWS scoring API when configured; otherwise uses localStorage.
+        Running results...
       </p>
 
       <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        <label>
-          Triathlon Name{' '}
-          <input value={eventId} onChange={(e) => setEventId(e.target.value)} style={{ marginLeft: 8 }} />
-        </label>
-        <button onClick={onLoad}>Load Published</button>
-        <div style={{ fontSize: 12, opacity: 0.85 }}>
+        <div style={{ fontSize: 12, opacity: 0.85 }}>Triathlon</div>
+        <div>
+          <code>{eventId}</code>
+        </div>
+        <button onClick={openPicker}>Select…</button>
+        <button onClick={() => void onLoad()}>Load Published</button>
+        <div style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.85 }}>
           Key: <code>{publishedKey}</code>
         </div>
       </div>
+
+      <dialog ref={dialogRef} className="bstDialog">
+        <div className="bstDialogHeader">
+          <b>Select triathlon</b>
+          <button style={{ marginLeft: 'auto' }} onClick={closePicker}>
+            Close
+          </button>
+        </div>
+        <div className="bstDialogBody">
+          <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              Year
+              <input
+                type="number"
+                value={docsYearFilter ?? ''}
+                onChange={(e) => setDocsYearFilter(e.target.value ? Number(e.target.value) : null)}
+                style={{ width: 90 }}
+              />
+            </label>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              Search
+              <input value={docSearch} onChange={(e) => setDocSearch(e.target.value)} placeholder="eventId contains…" />
+            </label>
+            <button onClick={refreshDocs}>Refresh</button>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Found: {filteredDocs.length}</div>
+          </div>
+
+          {filteredDocs.length === 0 ? (
+            <div className="card" style={{ fontSize: 12, opacity: 0.9 }}>
+              No published triathlons found in localStorage yet. If you’re using the AWS backend, you can still load by typing the eventId in the URL/API for now.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select
+                value={selectedDocKey}
+                onChange={(e) => setSelectedDocKey(e.target.value)}
+                style={{ minWidth: 360, maxWidth: '100%' }}
+              >
+                <option value="">— Select —</option>
+                {filteredDocs.map((d) => (
+                  <option key={`${d.kind}:${d.eventId}`} value={`${d.kind}:${d.eventId}`}>
+                    {d.eventId} ({d.year}) • {d.updatedAt ?? '-'}
+                  </option>
+                ))}
+              </select>
+              <button disabled={!selectedDoc} onClick={() => void onUseSelected()}>
+                Use
+              </button>
+            </div>
+          )}
+        </div>
+      </dialog>
 
       {error && (
         <div className="card" style={{ marginTop: 10, color: '#b00020' }}>

@@ -7,8 +7,6 @@ import { hasBackendConfig } from '../../../lib/runtime-config';
 
 import { useScoring } from './scoring-context';
 
-type Flash = { message: string; at: number } | null;
-
 function badgeStyle(params?: { bg?: string; border?: string; color?: string }): React.CSSProperties {
   return {
     display: 'inline-flex',
@@ -25,8 +23,7 @@ function badgeStyle(params?: { bg?: string; border?: string; color?: string }): 
 }
 
 export default function ActionsBar() {
-  const { eventId, year, doc, onSaveDraft, onPublish } = useScoring();
-  const [flash, setFlash] = useState<Flash>(null);
+  const { eventId, year, doc, onSaveDraft, onPublish, flash, setFlash } = useScoring();
 
   const backend = useMemo(() => hasBackendConfig(), []);
   const [isAuthed, setIsAuthed] = useState(false);
@@ -38,27 +35,36 @@ export default function ActionsBar() {
   useEffect(() => {
     handleOAuthCallback()
       .then(({ didHandle, error }) => {
-        if (didHandle && error) setFlash({ message: `Login error: ${error}`, at: Date.now() });
-        if (didHandle && !error) setFlash({ message: 'Logged in', at: Date.now() });
+        if (didHandle && error) setFlash({ message: `Login error: ${error}`, tone: 'error', at: Date.now() });
+        if (didHandle && !error) setFlash({ message: 'Logged in', tone: 'success', at: Date.now() });
         refreshAuth();
       })
       .catch((e) => {
-        setFlash({ message: `Login error: ${(e as Error)?.message ?? String(e)}`, at: Date.now() });
+        setFlash({ message: `Login error: ${(e as Error)?.message ?? String(e)}`, tone: 'error', at: Date.now() });
         refreshAuth();
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!flash) return;
-    const t = setTimeout(() => setFlash(null), 2500);
-    return () => clearTimeout(t);
-  }, [flash]);
-
   const saveDisabled = backend && !isAuthed;
 
   return (
-    <div className="card" style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+    <>
+      {flash ? (
+        <div className="bstTopBanner" data-tone={flash.tone} role={flash.tone === 'error' ? 'alert' : 'status'}>
+          <div className="bstTopBannerInner">
+            <span className="bstTopBannerIcon" aria-hidden="true">
+              {flash.tone === 'success' ? '✓' : flash.tone === 'error' ? '⚠' : 'ℹ'}
+            </span>
+            <span className="bstTopBannerMessage">{flash.message}</span>
+            <button className="bstTopBannerClose" aria-label="Dismiss" onClick={() => setFlash(null)}>
+              ×
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="card" style={{ display: 'grid', gap: 8, marginTop: 10 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={badgeStyle()}>
@@ -93,7 +99,9 @@ export default function ActionsBar() {
             ) : (
               <button
                 onClick={() => {
-                  startLogin().catch((e) => setFlash({ message: (e as Error)?.message ?? String(e), at: Date.now() }));
+                  startLogin().catch((e) =>
+                    setFlash({ message: (e as Error)?.message ?? String(e), tone: 'error', at: Date.now() })
+                  );
                 }}
               >
                 Login
@@ -106,9 +114,9 @@ export default function ActionsBar() {
             onClick={async () => {
               try {
                 await onSaveDraft();
-                setFlash({ message: 'Saved', at: Date.now() });
+                setFlash({ message: 'Saved', tone: 'success', at: Date.now() });
               } catch (e) {
-                setFlash({ message: (e as Error)?.message ?? String(e), at: Date.now() });
+                setFlash({ message: (e as Error)?.message ?? String(e), tone: 'error', at: Date.now() });
               }
             }}
           >
@@ -120,9 +128,9 @@ export default function ActionsBar() {
             onClick={async () => {
               try {
                 await onPublish();
-                setFlash({ message: 'Published', at: Date.now() });
+                setFlash({ message: 'Published', tone: 'success', at: Date.now() });
               } catch (e) {
-                setFlash({ message: (e as Error)?.message ?? String(e), at: Date.now() });
+                setFlash({ message: (e as Error)?.message ?? String(e), tone: 'error', at: Date.now() });
               }
             }}
           >
@@ -131,8 +139,8 @@ export default function ActionsBar() {
         </div>
       </div>
 
-      {backend && !isAuthed ? <div style={{ fontSize: 12, color: '#b00020' }}>Login required to save/publish.</div> : null}
-      {flash ? <div style={{ fontSize: 12, color: flash.message.startsWith('Login error:') ? '#b00020' : '#1b5e20' }}>{flash.message}</div> : null}
-    </div>
+        {backend && !isAuthed ? <div style={{ fontSize: 12, color: '#b00020' }}>Login required to save/publish.</div> : null}
+      </div>
+    </>
   );
 }
