@@ -312,6 +312,74 @@ a:hover { text-decoration: underline; }
 
 .card p { margin: 0; color: var(--muted); }
 
+button, input, select, textarea {
+  font: inherit;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+input, select, textarea {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+button {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: 2px solid rgba(26, 140, 255, 0.65);
+  outline-offset: 2px;
+}
+
+.bstDialog {
+  width: min(760px, 96vw);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 500px at 30% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78));
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.bstDialog::backdrop {
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.bstDialogHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bstDialogBody {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
 ul.bullets {
   margin: 0;
   padding-left: 18px;

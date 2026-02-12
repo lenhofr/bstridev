@@ -300,33 +300,27 @@ export default function AdminScoringClient() {
         {flash ? <div style={{ fontSize: 12, color: flash.toLowerCase().includes('error') ? '#b00020' : '#1b5e20' }}>{flash}</div> : null}
       </div>
 
-      <dialog
-        ref={dialogRef}
-        style={{
-          width: 'min(760px, 96vw)',
-          border: '1px solid rgba(0,0,0,0.18)',
-          borderRadius: 12,
-          padding: 0
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid rgba(0,0,0,0.10)' }}>
+      <dialog ref={dialogRef} className="bstDialog">
+        <div className="bstDialogHeader">
           <b>Select triathlon</b>
           <button style={{ marginLeft: 'auto' }} onClick={closeTriathlonDialog}>
             Close
           </button>
         </div>
 
-        <div style={{ padding: 14, display: 'grid', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="bstDialogBody">
+          <div className="tabs">
             <button
               onClick={() => setDialogTab('open')}
-              style={dialogTab === 'open' ? { fontWeight: 700 } : undefined}
+              className="tab"
+              data-active={dialogTab === 'open'}
             >
               Open existing
             </button>
             <button
               onClick={() => setDialogTab('create')}
-              style={dialogTab === 'create' ? { fontWeight: 700 } : undefined}
+              className="tab"
+              data-active={dialogTab === 'create'}
             >
               Create new
             </button>
