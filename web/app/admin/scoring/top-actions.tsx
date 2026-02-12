@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-import { getAccessToken, handleOAuthCallback, logout, startLogin } from '../../../lib/cognito-auth';
+import { getAccessToken, logout } from '../../../lib/cognito-auth';
 import { apiPutActiveTriathlon } from '../../../lib/scoring-api';
 import { setLocalActiveEventId } from '../../../lib/active-triathlon';
 import { hasBackendConfig, runtimeConfig } from '../../../lib/runtime-config';
@@ -28,27 +28,8 @@ export default function ActionsBar() {
   const { eventId, year, doc, onSaveDraft, onPublish, flash, setFlash } = useScoring();
 
   const backend = useMemo(() => hasBackendConfig(), []);
-  const [isAuthed, setIsAuthed] = useState(false);
 
-  function refreshAuth() {
-    setIsAuthed(Boolean(getAccessToken()));
-  }
-
-  useEffect(() => {
-    handleOAuthCallback()
-      .then(({ didHandle, error }) => {
-        if (didHandle && error) setFlash({ message: `Login error: ${error}`, tone: 'error', at: Date.now() });
-        if (didHandle && !error) setFlash({ message: 'Logged in', tone: 'success', at: Date.now() });
-        refreshAuth();
-      })
-      .catch((e) => {
-        setFlash({ message: `Login error: ${(e as Error)?.message ?? String(e)}`, tone: 'error', at: Date.now() });
-        refreshAuth();
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const saveDisabled = !eventId.trim() || (backend && !isAuthed);
+  const saveDisabled = !eventId.trim();
 
   return (
     <>
@@ -81,38 +62,13 @@ export default function ActionsBar() {
           <span style={badgeStyle()}>
             Storage <b>{backend ? 'AWS' : 'localStorage'}</b>
           </span>
-          {backend ? (
-            <span
-              style={badgeStyle(
-                isAuthed
-                  ? { bg: 'rgba(27,94,32,0.08)', border: 'rgba(27,94,32,0.35)', color: '#1b5e20' }
-                  : { bg: 'rgba(176,0,32,0.08)', border: 'rgba(176,0,32,0.35)', color: '#b00020' }
-              )}
-            >
-              {isAuthed ? 'Logged in' : 'Logged out'}
-            </span>
-          ) : null}
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {backend ? (
-            isAuthed ? (
-              <button onClick={() => logout()}>Logout</button>
-            ) : (
-              <button
-                onClick={() => {
-                  startLogin().catch((e) =>
-                    setFlash({ message: (e as Error)?.message ?? String(e), tone: 'error', at: Date.now() })
-                  );
-                }}
-              >
-                Login
-              </button>
-            )
-          ) : null}
+          {backend ? <button onClick={() => logout()}>Logout</button> : null}
           <button
             disabled={saveDisabled}
-            title={saveDisabled ? (!eventId.trim() ? 'Select a triathlon first' : 'Login required') : undefined}
+            title={saveDisabled ? 'Select a triathlon first' : undefined}
             onClick={async () => {
               try {
                 await onSaveDraft();
@@ -126,8 +82,8 @@ export default function ActionsBar() {
           </button>
 
           <button
-            disabled={!eventId.trim() || (backend && !isAuthed)}
-            title={!eventId.trim() ? 'Select a triathlon first' : backend && !isAuthed ? 'Login required' : undefined}
+            disabled={!eventId.trim()}
+            title={!eventId.trim() ? 'Select a triathlon first' : undefined}
             onClick={async () => {
               try {
                 if (backend) {
@@ -148,7 +104,7 @@ export default function ActionsBar() {
           </button>
           <button
             disabled={saveDisabled}
-            title={saveDisabled ? (!eventId.trim() ? 'Select a triathlon first' : 'Login required') : undefined}
+            title={saveDisabled ? 'Select a triathlon first' : undefined}
             onClick={async () => {
               try {
                 await onPublish();
@@ -162,8 +118,6 @@ export default function ActionsBar() {
           </button>
         </div>
       </div>
-
-        {backend && !isAuthed ? <div style={{ fontSize: 12, color: '#b00020' }}>Login required to save/publish.</div> : null}
       </div>
     </>
   );

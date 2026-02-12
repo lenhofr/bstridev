@@ -96,7 +96,6 @@ export default function AdminScoringClient() {
 
 
   const backend = useMemo(() => hasBackendConfig(), []);
-  const authed = !backend || Boolean(getAccessToken());
 
   const participants = doc.participants;
 
@@ -104,7 +103,6 @@ export default function AdminScoringClient() {
     setDocsLoading(true);
     try {
       if (backend) {
-        if (!authed) throw new Error('Login required to list docs.');
         const accessToken = getAccessToken();
         if (!accessToken) throw new Error('Not logged in (Cognito)');
         if (!runtimeConfig.scoringApiBaseUrl) throw new Error('Missing scoringApiBaseUrl');
@@ -191,7 +189,7 @@ export default function AdminScoringClient() {
   useEffect(() => {
     refreshDocs(docsYearFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backend, authed, docsYearFilter]);
+  }, [backend, docsYearFilter]);
 
   const baseOrder = doc.eventMeta?.competitorOrder?.length ? doc.eventMeta.competitorOrder : participants.map((p) => p.personId);
   const competitorOrder = [...baseOrder, ...participants.map((p) => p.personId).filter((pid) => !baseOrder.includes(pid))];
@@ -338,7 +336,7 @@ export default function AdminScoringClient() {
                   Search
                   <input value={docSearch} onChange={(e) => setDocSearch(e.target.value)} placeholder="eventId contains…" />
                 </label>
-                <button disabled={docsLoading || (backend && !authed)} onClick={() => refreshDocs(docsYearFilter)}>
+                <button disabled={docsLoading} onClick={() => refreshDocs(docsYearFilter)}>
                   {docsLoading ? 'Loading…' : 'Refresh'}
                 </button>
                 <div style={{ fontSize: 12, opacity: 0.85 }}>Found: {filteredDocs.length}</div>
@@ -353,14 +351,9 @@ export default function AdminScoringClient() {
                     </option>
                   ))}
                 </select>
-                <button
-                  disabled={!selectedDoc || (backend && !authed && selectedDoc.kind === 'draft')}
-                  title={backend && !authed && selectedDoc?.kind === 'draft' ? 'Login required' : undefined}
-                  onClick={() => void onOpenSelectedFromDialog()}
-                >
+                <button disabled={!selectedDoc} onClick={() => void onOpenSelectedFromDialog()}>
                   Open
                 </button>
-                {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to list/load drafts.</span> : null}
               </div>
 
               <div style={{ fontSize: 12, opacity: 0.85 }}>Opening a published doc loads it into a new draft.</div>

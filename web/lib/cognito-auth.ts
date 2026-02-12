@@ -9,6 +9,7 @@ type Tokens = {
 
 const LS_TOKENS_KEY = 'bstri:auth:tokens';
 const SS_PKCE_KEY = 'bstri:auth:pkce';
+const SS_RETURN_TO_KEY = 'bstri:auth:returnTo';
 
 function base64UrlEncode(bytes: Uint8Array): string {
   let str = '';
@@ -50,7 +51,7 @@ export function clearTokens() {
   localStorage.removeItem(LS_TOKENS_KEY);
 }
 
-export async function startLogin() {
+export async function startLogin(params: { returnTo?: string } = {}) {
   const domain = runtimeConfig.cognitoHostedUiDomain;
   const clientId = runtimeConfig.cognitoUserPoolClientId;
   if (!domain || !clientId) throw new Error('Missing Cognito config');
@@ -60,6 +61,7 @@ export async function startLogin() {
   const codeChallenge = base64UrlEncode(await sha256(codeVerifier));
 
   sessionStorage.setItem(SS_PKCE_KEY, JSON.stringify({ state, codeVerifier }));
+  if (params.returnTo) sessionStorage.setItem(SS_RETURN_TO_KEY, params.returnTo);
 
   const url = new URL(`${domain}/oauth2/authorize`);
   url.searchParams.set('client_id', clientId);
@@ -138,6 +140,16 @@ export async function handleOAuthCallback(): Promise<{ didHandle: boolean; error
 
   localStorage.setItem(LS_TOKENS_KEY, JSON.stringify(tokens));
   window.history.replaceState({}, '', `${url.pathname}`);
+
+  const returnTo = sessionStorage.getItem(SS_RETURN_TO_KEY);
+  if (returnTo) {
+    sessionStorage.removeItem(SS_RETURN_TO_KEY);
+    // Prevent open redirects: only allow returning within admin scoring.
+    if (returnTo.startsWith('/admin/scoring') && returnTo !== url.pathname) {
+      window.location.replace(returnTo);
+    }
+  }
+
   return { didHandle: true };
 }
 
