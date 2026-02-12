@@ -99,7 +99,7 @@ export default function BowlingScoringClient() {
             <h3 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span>{g.label}</span>
               <button onClick={() => setGameFinalized(g.gameId, !finalized)} style={{ marginLeft: 'auto' }}>
-                {finalized ? 'Mark incomplete' : 'Mark complete'}
+                {finalized ? 'Mark game incomplete' : 'Mark game complete'}
               </button>
               <span style={{ fontSize: 12, opacity: 0.8 }}>{finalized ? 'Complete' : 'Not complete'}</span>
             </h3>

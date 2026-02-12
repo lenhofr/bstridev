@@ -6,9 +6,6 @@ export default function Home() {
       <PanelIcons />
 
       <h1 className="panelTitle">2026 Events</h1>
-      <p className="subtle" style={{ marginTop: -6 }}>
-        Deployed from <strong>bstridev</strong> (Next.js) — v2 (pipeline smoke test)
-      </p>
 
       <div className="grid2">
         <section className="card">

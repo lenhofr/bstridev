@@ -20,8 +20,6 @@ export default function AdminScoringClient() {
     setYear,
     onNewDoc,
     onLoadDraft,
-    onSaveDraft,
-    onPublish,
     importDoc,
     addParticipant,
     updateParticipantDisplayName,
@@ -308,9 +306,10 @@ export default function AdminScoringClient() {
         </label>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button onClick={onNewDoc}>New TRI</button>
+          <button onClick={onNewDoc}>Create new</button>
           <button
             disabled={backend && !authed}
+            title={backend && !authed ? 'Login required' : undefined}
             onClick={async () => {
               try {
                 await onLoadDraft();
@@ -321,47 +320,10 @@ export default function AdminScoringClient() {
               setTimeout(() => setFlash(null), 2500);
             }}
           >
-            Load TRI
+            Load draft
           </button>
-          <button
-            disabled={backend && !authed}
-            onClick={async () => {
-              try {
-                await onSaveDraft();
-                setFlash('Saved');
-              } catch (e) {
-                setFlash((e as Error)?.message ?? String(e));
-              }
-              setTimeout(() => setFlash(null), 2500);
-            }}
-          >
-            Save TRI
-          </button>
-          <button
-            disabled={backend && !authed}
-            onClick={async () => {
-              try {
-                await onPublish();
-                setFlash('Published');
-              } catch (e) {
-                setFlash((e as Error)?.message ?? String(e));
-              }
-              setTimeout(() => setFlash(null), 2500);
-            }}
-          >
-            Publish
-          </button>
-          {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to load/save/publish.</span> : null}
+          {backend && !authed ? <span style={{ fontSize: 12, color: '#b00020' }}>Login required to load drafts.</span> : null}
           {flash && <span style={{ fontSize: 12, color: '#1b5e20' }}>{flash}</span>}
-        </div>
-
-        <div style={{ fontSize: 12, opacity: 0.85 }}>
-          <div>
-            Draft key: <code>{draftKey}</code>
-          </div>
-          <div>
-            Published key: <code>{publishedKey}</code>
-          </div>
         </div>
       </div>
 
@@ -470,28 +432,42 @@ export default function AdminScoringClient() {
       </div>
 
       <details style={{ marginTop: 18 }}>
-        <summary>Fixtures (load sample TRI docs)</summary>
-        <div className="card" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>
-            Loads a sample scoring document (participants + scenarios). This overwrites the current draft.
+        <summary>Advanced</summary>
+        <div style={{ marginTop: 8, display: 'grid', gap: 12 }}>
+          <div className="card" style={{ fontSize: 12, opacity: 0.9 }}>
+            <div>
+              Draft key: <code>{draftKey}</code>
+            </div>
+            <div>
+              Published key: <code>{publishedKey}</code>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/even-6-blank.json', 'Even (6) blank')}>Even (6) blank</button>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/odd-5-blank.json', 'Odd (5) blank')}>Odd (5) blank</button>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-incomplete.json', 'Pool H2H incomplete')}>Pool H2H incomplete</button>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-resolves.json', 'Pool H2H resolves')}>Pool H2H resolves</button>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-run-tiebreaker-only.json', 'Pool Run tiebreaker')}>Pool Run tiebreaker</button>
-            <button onClick={() => void onLoadFixture('/fixtures/scoring/duplicate-places.json', 'Duplicate places')}>Duplicate places</button>
-          </div>
-        </div>
-      </details>
 
-      <details style={{ marginTop: 12 }}>
-        <summary>Raw JSON (current doc)</summary>
-        <div className="card" style={{ overflowX: 'auto', marginTop: 8 }}>
-          <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
-            {JSON.stringify(doc, null, 2)}
-          </pre>
+          <details>
+            <summary>Fixtures (load sample TRI docs)</summary>
+            <div className="card" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+              <div style={{ fontSize: 12, opacity: 0.85 }}>
+                Loads a sample scoring document (participants + scenarios). This overwrites the current draft.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/even-6-blank.json', 'Even (6) blank')}>Even (6) blank</button>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/odd-5-blank.json', 'Odd (5) blank')}>Odd (5) blank</button>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-incomplete.json', 'Pool H2H incomplete')}>Pool H2H incomplete</button>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-h2h-resolves.json', 'Pool H2H resolves')}>Pool H2H resolves</button>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/pool-run-tiebreaker-only.json', 'Pool Run tiebreaker')}>Pool Run tiebreaker</button>
+                <button onClick={() => void onLoadFixture('/fixtures/scoring/duplicate-places.json', 'Duplicate places')}>Duplicate places</button>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Raw JSON (current doc)</summary>
+            <div className="card" style={{ overflowX: 'auto', marginTop: 8 }}>
+              <pre suppressHydrationWarning style={{ margin: 0, fontSize: 12 }}>
+                {JSON.stringify(doc, null, 2)}
+              </pre>
+            </div>
+          </details>
         </div>
       </details>
     </div>
